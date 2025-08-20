@@ -1,36 +1,82 @@
-name: MSBuild
+name: MSBuild CI/CD
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, develop ]
+  
+  # This enables manual builds
+  workflow_dispatch:
 
+# Set shorter timeout for faster feedback (default is 6 hours)
 jobs:
   msbuild:
+    timeout-minutes: 30
     runs-on: windows-latest
-
+    
+    # Cache NuGet packages to speed up subsequent builds
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      
     strategy:
       matrix:
         configuration: [Release, ReleaseAVX2, ReleaseFreetype, ReleaseFreetypeAVX2]
+        # Add more platforms if needed: [x64, x86, ARM64]
         platform: [x64]
+      
+      # Don't fail entire build if one configuration fails
+      fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # Fetch full history for better versioning
+        fetch-depth: 0
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    - name: Restore NuGet packages
-      working-directory: ${{ env.GITHUB_WORKSPACE }}
-      run: nuget restore
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.NUGET_PACKAGES }}
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.config') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
 
-    - name: Build
-      working-directory: ${{ env.GITHUB_WORKSPACE }}
-      run: msbuild Amalgam.sln /p:Platform=${{ matrix.platform }} /p:Configuration=${{ matrix.configuration }}
-    
-    - uses: actions/upload-artifact@v4
+    - name: Restore NuGet packages
+      run: nuget restore Amalgam.sln
+      
+    - name: Build solution
+      run: |
+        msbuild Amalgam.sln `
+          /p:Platform=${{ matrix.platform }} `
+          /p:Configuration=${{ matrix.configuration }} `
+          /p:ContinuousIntegrationBuild=true `
+          /p:Deterministic=true `
+          /verbosity:minimal `
+          /nodeReuse:false
+      # Additional flags for better CI experience:
+      # - ContinuousIntegrationBuild: Optimizations for CI
+      # - Deterministic: Reproducible builds
+      # - nodeReuse: false: Cleaner resource management
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: Amalgam${{ matrix.platform }}${{ matrix.configuration }}
-        path: output/${{ matrix.platform }}/${{ matrix.configuration }}/*.dll
-    
-    - uses: actions/upload-artifact@v4
+        name: Amalgam-${{ matrix.platform }}-${{ matrix.configuration }}-${{ github.run_number }}
+        path: output/${{ matrix.platform }}/${{ matrix.configuration }}/
+        # Upload entire directory instead of specific files
+        # Clean up old artifacts automatically
+        retention-days: 7
+
+    - name: Upload symbol files (separate artifact)
+      uses: actions/upload-artifact@v4
       with:
-        name: Amalgam${{ matrix.platform }}${{ matrix.configuration }}PDB
+        name: Symbols-${{ matrix.platform }}-${{ matrix.configuration }}-${{ github.run_number }}
         path: output/${{ matrix.platform }}/${{ matrix.configuration }}/*.pdb
+        # Keep symbols longer for debugging
+        retention-days: 30
