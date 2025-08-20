@@ -860,8 +860,59 @@ void CMenu::MenuVisuals(int iTab)
 		}
 		break;
 	}
-	// Menu
+	// Radar
 	case 2:
+	{
+		if (BeginTable("VisualsRadarTable", 2))
+		{
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("Main", 8))
+				{
+					FToggle(Vars::Radar::Main::Enabled, FToggleEnum::Left);
+					FToggle(Vars::Radar::Main::DrawOutOfRange, FToggleEnum::Right);
+					FDropdown(Vars::Radar::Main::Style);
+					FSlider(Vars::Radar::Main::Range);
+					FSlider(Vars::Radar::Main::BackgroundAlpha);
+					FSlider(Vars::Radar::Main::LineAlpha);
+				} EndSection();
+				if (Section("Player", 8))
+				{
+					FToggle(Vars::Radar::Player::Enabled, FToggleEnum::Left);
+					FToggle(Vars::Radar::Player::Background, FToggleEnum::Right);
+					FDropdown(Vars::Radar::Player::Draw, FDropdownEnum::Left);
+					FDropdown(Vars::Radar::Player::Icon, FDropdownEnum::Right);
+					FSlider(Vars::Radar::Player::Size);
+					FToggle(Vars::Radar::Player::Health, FToggleEnum::Left);
+					FToggle(Vars::Radar::Player::Height, FToggleEnum::Right);
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("Building", 8))
+				{
+					FToggle(Vars::Radar::Building::Enabled, FToggleEnum::Left, nullptr);
+					FToggle(Vars::Radar::Building::Background, FToggleEnum::Right, nullptr);
+					FDropdown(Vars::Radar::Building::Draw);
+					FSlider(Vars::Radar::Building::Size);
+					FToggle(Vars::Radar::Building::Health);
+				} EndSection();
+				if (Section("World", 8))
+				{
+					FToggle(Vars::Radar::World::Enabled, FToggleEnum::Left);
+					FToggle(Vars::Radar::World::Background, FToggleEnum::Right);
+					FDropdown(Vars::Radar::World::Draw);
+					FSlider(Vars::Radar::World::Size);
+				} EndSection();
+			}
+			EndTable();
+		}
+		break;
+	}
+	// Menu
+	case 3:
 	{
 		if (BeginTable("MenuTable", 2))
 		{
@@ -878,7 +929,7 @@ void CMenu::MenuVisuals(int iTab)
 					FSDropdown(Vars::Menu::CheatTitle, FDropdownEnum::Left);
 					FSDropdown(Vars::Menu::CheatTag, FDropdownEnum::Right);
 					FKeybind(Vars::Menu::PrimaryKey, FButtonEnum::Left, { Vars::Menu::SecondaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON });
-					FKeybind(Vars::Menu::SecondaryKey, FButtonEnum::Right | FButtonEnum::SameLine, { Vars::Menu::PrimaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON });
+					// FKeybind(Vars::Menu::SecondaryKey, FButtonEnum::Right | FButtonEnum::SameLine, { Vars::Menu::PrimaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON });
 				} EndSection();
 			}
 			/* Column 2 */
