@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       include-symbols-with-binaries:
-        description: 'Include PDB files with binary artifacts (in addition to separate symbols)'
+        description: 'Include PDB files with binary artifacts'
         type: boolean
         default: false
       upload-complete-output:
@@ -78,42 +78,29 @@ jobs:
       run: |
         # Create directories for different artifact categories
         mkdir -p artifacts/binaries/${{ matrix.platform }}/${{ matrix.configuration }}
-        mkdir -p artifacts/symbols/${{ matrix.platform }}/${{ matrix.configuration }}
         
         # Copy binaries (executables and libraries) to binaries directory
         copy output\${{ matrix.platform }}\${{ matrix.configuration }}\*.exe artifacts\binaries\${{ matrix.platform }}\${{ matrix.configuration }}\
         copy output\${{ matrix.platform }}\${{ matrix.configuration }}\*.dll artifacts\binaries\${{ matrix.platform }}\${{ matrix.configuration }}\
         copy output\${{ matrix.platform }}\${{ matrix.configuration }}\*.config artifacts\binaries\${{ matrix.platform }}\${{ matrix.configuration }}\
-        
-        # Copy symbol files to symbols directory
-        copy output\${{ matrix.platform }}\${{ matrix.configuration }}\*.pdb artifacts\symbols\${{ matrix.platform }}\${{ matrix.configuration }}\
 
     # Upload binary artifacts (DLLs, EXEs) - configurable to include symbols
     - name: Upload binary artifacts
+      if: ${{ !github.event.inputs.upload-complete-output || github.event.inputs.upload-complete-output == 'false' }}
       uses: actions/upload-artifact@v4
       with:
         name: Binaries-${{ matrix.platform }}-${{ matrix.configuration }}-${{ github.run_number }}
         path: |
           artifacts/binaries/${{ matrix.platform }}/${{ matrix.configuration }}/
           # Conditionally include symbols if requested via workflow input
-          ${{ github.event.inputs.include-symbols-with-binaries && 'artifacts/symbols/${{ matrix.platform }}/${{ matrix.configuration }}/' || '' }}
+          ${{ github.event.inputs.include-symbols-with-binaries && format('output/{0}/{1}/*.pdb', matrix.platform, matrix.configuration) || '' }}
         retention-days: 7
         # Compression reduces upload and download times and storage usage
         compression-level: 9
 
-    # Always upload symbols as separate artifact for debugging purposes
-    - name: Upload symbol files
-      uses: actions/upload-artifact@v4
-      with:
-        name: Symbols-${{ matrix.platform }}-${{ matrix.configuration }}-${{ github.run_number }}
-        path: artifacts/symbols/${{ matrix.platform }}/${{ matrix.configuration }}/
-        retention-days: 30
-        # Symbols benefit from compression but use moderate level for balance
-        compression-level: 6
-
     # Optional: Upload complete build output for comprehensive access
     - name: Upload complete build output
-      if: ${{ github.event.inputs.upload-complete-output == 'true' }}
+      if: ${{ github.event.inputs.upload-complete-output && github.event.inputs.upload-complete-output != 'false' }}
       uses: actions/upload-artifact@v4
       with:
         name: Complete-${{ matrix.platform }}-${{ matrix.configuration }}-${{ github.run_number }}
@@ -125,8 +112,16 @@ jobs:
     # Additional step: Create and upload checksums for verification
     - name: Create checksums for binaries
       run: |
-        cd artifacts/binaries/${{ matrix.platform }}/${{ matrix.configuration }}
-        Get-FileHash -Algorithm SHA256 * | Format-List | Out-File -FilePath checksums.sha256
+        $artifactsPath = "artifacts/binaries/${{ matrix.platform }}/${{ matrix.configuration }}"
+        Get-ChildItem -Path $artifactsPath -Exclude checksums.sha256 | 
+        ForEach-Object {
+            $hash = Get-FileHash -Algorithm SHA256 $_.FullName
+            [PSCustomObject]@{
+                Algorithm = $hash.Algorithm
+                Hash = $hash.Hash
+                File = $_.Name
+            }
+        } | Format-List | Out-File -FilePath "$artifactsPath/checksums.sha256"
       shell: pwsh
 
     - name: Upload checksums
