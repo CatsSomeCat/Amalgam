@@ -173,7 +173,7 @@ namespace Vars
 		CVar(CheatTitle, "Cheat title", std::string("Amalgam"), VISUAL | DROPDOWN_AUTOUPDATE);
 		CVar(CheatTag, "Cheat tag", std::string("[Amalgam]"), VISUAL);
 		CVar(PrimaryKey, "Primary key", VK_INSERT, NOBIND);
-		// CVar(SecondaryKey, "Secondary key", VK_F3, NOBIND);
+		CVar(SecondaryKey, "Secondary key", VK_F3, NOBIND);
 
 		CVar(BindWindow, "Bind window", true);
 		CVar(BindWindowTitle, "Bind window title", true);
