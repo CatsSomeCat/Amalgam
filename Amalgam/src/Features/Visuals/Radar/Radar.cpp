@@ -2,6 +2,7 @@
 
 #include "../../Players/PlayerUtils.h"
 #include "../../ImGui/Menu/Menu.h"
+#include "../Groups/Groups.h"
 
 bool CRadar::GetDrawPosition(CTFPlayer* pLocal, CBaseEntity* pEntity, int& x, int& y, int& z)
 {
@@ -75,6 +76,8 @@ void CRadar::DrawBackground()
 
 void CRadar::DrawPoints(CTFPlayer* pLocal)
 {
+    if (!F::Groups.GroupsActive())
+        return;
 	if (Vars::Radar::World::Enabled.Value)
 	{
 		const int iSize = Vars::Radar::World::Size.Value;
@@ -83,13 +86,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto pGargy : H::Entities.GetGroup(EGroupType::WORLD_GARGOYLE))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(pGargy, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, pGargy, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Halloween.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pGargy, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 39);
@@ -101,13 +107,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto pBook : H::Entities.GetGroup(EGroupType::PICKUPS_SPELLBOOK))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(pBook, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, pBook, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Halloween.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pBook, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 38);
@@ -119,13 +128,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto pPower : H::Entities.GetGroup(EGroupType::PICKUPS_POWERUP))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(pPower, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, pPower, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Powerup.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pPower, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 37);
@@ -137,13 +149,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto bBomb : H::Entities.GetGroup(EGroupType::WORLD_BOMBS))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(bBomb, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, bBomb, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Halloween.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(bBomb, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 36);
@@ -155,13 +170,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto pBook : H::Entities.GetGroup(EGroupType::PICKUPS_MONEY))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(pBook, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, pBook, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Money.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pBook, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 35);
@@ -173,13 +191,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto pAmmo : H::Entities.GetGroup(EGroupType::PICKUPS_AMMO))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(pAmmo, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, pAmmo, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Ammo.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pAmmo, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 34);
@@ -191,13 +212,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			for (auto pHealth : H::Entities.GetGroup(EGroupType::PICKUPS_HEALTH))
 			{
+				Group_t* pGroup = nullptr;
+				if (!F::Groups.GetGroup(pHealth, pLocal, pGroup, false))
+					continue;
 				int x, y, z;
 				if (GetDrawPosition(pLocal, pHealth, x, y, z))
 				{
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, Vars::Colors::Health.Value);
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pHealth, pGroup));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 33);
@@ -214,32 +238,14 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 		{
 			auto pBuilding = pEntity->As<CBaseObject>();
 
-			if (!pBuilding->m_bWasMapPlaced())
-			{
-				auto pOwner = pBuilding->m_hBuilder().Get();
-				if (pOwner)
-				{
-					const int nIndex = pOwner->entindex();
-					if (pLocal->m_iObserverMode() == OBS_MODE_FIRSTPERSON ? pLocal->m_hObserverTarget().Get() == pOwner : nIndex == I::EngineClient->GetLocalPlayer())
-					{
-						if (!(Vars::Radar::Building::Draw.Value & Vars::Radar::Building::DrawEnum::Local))
-							continue;
-					}
-					else
-					{
-						if (!(Vars::Radar::Building::Draw.Value & Vars::Radar::Building::DrawEnum::Prioritized && F::PlayerUtils.IsPrioritized(nIndex))
-							&& !(Vars::Radar::Building::Draw.Value & Vars::Radar::Building::DrawEnum::Friends && H::Entities.IsFriend(nIndex))
-							&& !(Vars::Radar::Building::Draw.Value & Vars::Radar::Building::DrawEnum::Party && H::Entities.InParty(nIndex))
-							&& !(pOwner->As<CTFPlayer>()->m_iTeamNum() != pLocal->m_iTeamNum() ? Vars::Radar::Building::Draw.Value & Vars::Radar::Building::DrawEnum::Enemy : Vars::Radar::Building::Draw.Value & Vars::Radar::Building::DrawEnum::Team))
-							continue;
-					}
-				}
-			}
+			Group_t* pGroup = nullptr;
+			if (!F::Groups.GetGroup(pBuilding, pLocal, pGroup, false))
+				continue;
 
 			int x, y, z;
 			if (GetDrawPosition(pLocal, pBuilding, x, y, z))
 			{
-				const Color_t tColor = H::Color.GetEntityDrawColor(pLocal, pBuilding, Vars::Colors::Relative.Value);
+				const Color_t tColor = F::Groups.GetColor(pBuilding, pGroup);
 
 				int iBounds = iSize;
 				if (Vars::Radar::Building::Background.Value)
@@ -284,27 +290,16 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 			if (pPlayer->IsDormant() && !H::Entities.GetDormancy(pPlayer->entindex()) || !pPlayer->IsAlive() || pPlayer->IsAGhost())
 				continue;
 
-			const int nIndex = pPlayer->entindex();
-			if (pLocal->m_iObserverMode() == OBS_MODE_FIRSTPERSON ? pLocal->m_hObserverTarget().Get() == pPlayer : nIndex == I::EngineClient->GetLocalPlayer())
-			{
-				if (!(Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Local))
-					continue;
-			}
-			else
-			{
-				if (!(Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Prioritized && F::PlayerUtils.IsPrioritized(nIndex))
-					&& !(Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Friends && H::Entities.IsFriend(nIndex))
-					&& !(Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Party && H::Entities.InParty(nIndex))
-					&& !(pPlayer->m_iTeamNum() != pLocal->m_iTeamNum() ? Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Enemy : Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Team))
-					continue;
-			}
+			Group_t* pGroup = nullptr;
+			if (!F::Groups.GetGroup(pPlayer, pLocal, pGroup, false))
+				continue;
 			if (!(Vars::Radar::Player::Draw.Value & Vars::Radar::Player::DrawEnum::Cloaked) && pPlayer->m_flInvisibility() >= 1.f)
 				continue;
 
 			int x, y, z;
 			if (GetDrawPosition(pLocal, pPlayer, x, y, z))
 			{
-				const Color_t tColor = H::Color.GetEntityDrawColor(pLocal, pPlayer, Vars::Colors::Relative.Value);
+				const Color_t tColor = F::Groups.GetColor(pPlayer, pGroup);
 
 				int iBounds = iSize;
 				if (Vars::Radar::Player::Background.Value)

@@ -74,7 +74,7 @@ void CMenu::DrawMenu()
 		FTabs(
 			{
 				{ "AIMBOT", "GENERAL", "DRAW" },
-				{ "VISUALS", "ESP", "MISC##", "RADAR", "MENU" },
+				{ "VISUALS", "GROUPS", "ESP", "MISC##", "RADAR", "MENU" },
 				{ "MISC", "MAIN", "HVH" },
 				{ "LOGS", "PLAYERLIST", "SETTINGS##", "OUTPUT" },
 				{ "SETTINGS", "CONFIG", "BINDS", "MATERIALS", "EXTRA" }
@@ -448,13 +448,13 @@ void CMenu::MenuVisuals(int iTab)
 
 	switch (iTab)
 	{
-	// ESP
+	// Groups
 	case 0:
 	{
 		// fake angle/viewmodel visuals, pickup timers?
 		static size_t iCurrentGroup = 0;
 
-		if (Section("Groups"))
+		if (Section("Main"))
 		{
 			static std::string sStaticName;
 
@@ -470,6 +470,8 @@ void CMenu::MenuVisuals(int iTab)
 						sStaticName.clear();
 
 						iCurrentGroup = F::Groups.m_vGroups.size() - 1;
+						// enable the newly created group by default
+						Vars::ESP::ActiveGroups.Value |= (1 << iCurrentGroup);
 					}
 				}
 				PopDisabled();
@@ -521,6 +523,8 @@ void CMenu::MenuVisuals(int iTab)
 
 				SetCursorPos({ vOriginalPos.x + flWidth - H::Draw.Scale(26), vOriginalPos.y + H::Draw.Scale(2) });
 				bool bDelete = IconButton(ICON_MD_DELETE);
+				if (IsItemHovered())
+					SetTooltip("Delete group");
 
 				SetCursorPos(vOriginalPos);
 				if (Button(std::format("##{}", iGroup).c_str(), { flWidth, flHeight }))
@@ -529,12 +533,22 @@ void CMenu::MenuVisuals(int iTab)
 				if (!bDelete)
 					++it;
 				else
+				{
+					// remove bit from ActiveGroups for deleted group and shift subsequent bits down
+					int maskBelow = (1 << iGroup) - 1;
+					int maskAbove = ~((1 << (iGroup + 1)) - 1);
+					int below = Vars::ESP::ActiveGroups.Value & maskBelow;
+					int above = (Vars::ESP::ActiveGroups.Value & maskAbove) >> 1;
+					Vars::ESP::ActiveGroups.Value = below | above;
 					it = F::Groups.m_vGroups.erase(it);
+					if (iCurrentGroup >= F::Groups.m_vGroups.size())
+						iCurrentGroup = F::Groups.m_vGroups.empty() ? 0 : F::Groups.m_vGroups.size() - 1;
+				}
 			}
 		} EndSection();
 
 		if (!F::Groups.m_vGroups.empty()
-			&& BeginTable("VisualsESPTable", 2))
+			&& BeginTable("VisualsGroupsTable", 2))
 		{
 			iCurrentGroup = std::clamp(iCurrentGroup, 0ui64, F::Groups.m_vGroups.size() - 1);
 			auto& tGroup = F::Groups.m_vGroups[iCurrentGroup];
@@ -715,7 +729,7 @@ void CMenu::MenuVisuals(int iTab)
 		}
 		break;
 	}
-	// Misc
+	// ESP
 	case 1:
 	{
 		if (BeginTable("VisualsMiscTable", 2))
@@ -868,28 +882,7 @@ void CMenu::MenuVisuals(int iTab)
 			/* Column 1 */
 			TableNextColumn();
 			{
-				if (Section("Colors", 8))
-				{
-					FToggle(Vars::Colors::Relative);
-					if (FGet(Vars::Colors::Relative))
-					{
-						FColorPicker(Vars::Colors::Enemy, FColorPickerEnum::Left);
-						FColorPicker(Vars::Colors::Team, FColorPickerEnum::Right);
-					}
-					else
-					{
-						FColorPicker(Vars::Colors::TeamRed, FColorPickerEnum::Left);
-						FColorPicker(Vars::Colors::TeamBlu, FColorPickerEnum::Right);
-					}
-					FColorPicker(Vars::Colors::Local, FColorPickerEnum::Left);
-					FColorPicker(Vars::Colors::Target, FColorPickerEnum::Right);
-					FColorPicker(Vars::Colors::Health, FColorPickerEnum::Left);
-					FColorPicker(Vars::Colors::Ammo, FColorPickerEnum::Right);
-					FColorPicker(Vars::Colors::Money, FColorPickerEnum::Left);
-					FColorPicker(Vars::Colors::Powerup, FColorPickerEnum::Right);
-					FColorPicker(Vars::Colors::NPC, FColorPickerEnum::Left);
-					FColorPicker(Vars::Colors::Halloween, FColorPickerEnum::Right);
-				} EndSection();
+				/* Colors section removed: Radar now uses Groups colors */
 				if (Section("Main", 8))
 				{
 					FToggle(Vars::Radar::Main::Enabled, FToggleEnum::Left);
