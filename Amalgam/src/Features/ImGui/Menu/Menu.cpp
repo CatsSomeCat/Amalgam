@@ -868,6 +868,28 @@ void CMenu::MenuVisuals(int iTab)
 			/* Column 1 */
 			TableNextColumn();
 			{
+				if (Section("Colors", 8))
+				{
+					FToggle(Vars::Colors::Relative);
+					if (FGet(Vars::Colors::Relative))
+					{
+						FColorPicker(Vars::Colors::Enemy, FColorPickerEnum::Left);
+						FColorPicker(Vars::Colors::Team, FColorPickerEnum::Right);
+					}
+					else
+					{
+						FColorPicker(Vars::Colors::TeamRed, FColorPickerEnum::Left);
+						FColorPicker(Vars::Colors::TeamBlu, FColorPickerEnum::Right);
+					}
+					FColorPicker(Vars::Colors::Local, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::Target, FColorPickerEnum::Right);
+					FColorPicker(Vars::Colors::Health, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::Ammo, FColorPickerEnum::Right);
+					FColorPicker(Vars::Colors::Money, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::Powerup, FColorPickerEnum::Right);
+					FColorPicker(Vars::Colors::NPC, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::Halloween, FColorPickerEnum::Right);
+				} EndSection();
 				if (Section("Main", 8))
 				{
 					FToggle(Vars::Radar::Main::Enabled, FToggleEnum::Left);
