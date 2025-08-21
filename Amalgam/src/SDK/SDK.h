@@ -4,6 +4,7 @@
 #include "Globals.h"
 #include "Helpers/Entities/Entities.h"
 #include "Helpers/Draw/Draw.h"
+#include "Helpers/Color/Color.h"
 #include "Helpers/TraceFilters/TraceFilters.h"
 #include "Helpers/Particles/Particles.h"
 #include "Definitions/Types.h"
