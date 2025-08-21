@@ -563,35 +563,15 @@ void CMenu::MenuVisuals(int iTab)
 				{
 					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
 					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
-					
-					Divider(H::Draw.Scale(), H::Draw.Scale(8), -H::Draw.Scale());
+				} EndSection();
+				if (Section("Per-module colors (optional)"))
+				{
+					// Divider(H::Draw.Scale(), H::Draw.Scale(12), -H::Draw.Scale());
 					FText("Per-module colors (optional):");
 					
-					PushTransparent(!tGroup.m_bUseESPColor);
-					{
-						FColorPicker("ESP color", &tGroup.m_tESPColor, FColorPickerEnum::Left);
-					}
-					PopTransparent();
-					PushTransparent(!tGroup.m_bUseGlowColor);
-					{
-						FColorPicker("Glow color", &tGroup.m_tGlowColor, FColorPickerEnum::Right);
-					}
-					PopTransparent();
 					FToggle("Use ESP color", &tGroup.m_bUseESPColor, FToggleEnum::Left);
 					FToggle("Use Glow color", &tGroup.m_bUseGlowColor, FToggleEnum::Right);
-					
-					PushTransparent(!tGroup.m_bUseRadarColor);
-					{
-						FColorPicker("Radar color", &tGroup.m_tRadarColor, FColorPickerEnum::Left);
-					}
-					PopTransparent();
-					PushTransparent(!tGroup.m_bUseChamsColor);
-					{
-						FColorPicker("Chams color", &tGroup.m_tChamsColor, FColorPickerEnum::Right);
-					}
-					PopTransparent();
 					FToggle("Use Radar color", &tGroup.m_bUseRadarColor, FToggleEnum::Left);
-					FToggle("Use Chams color", &tGroup.m_bUseChamsColor, FToggleEnum::Right);
 				} EndSection();
 				if (Section("Targets"))
 				{
@@ -776,18 +756,14 @@ void CMenu::MenuVisuals(int iTab)
 						PushTransparent(tGroup.m_iTargets && !(tGroup.m_iTargets & TargetsEnum::ESP));
 						{
 							FDropdown("Draw", &tGroup.m_iESP, vEntries, vValues, FDropdownEnum::Multi);
+							// ESP color picker
+							if (tGroup.m_bUseESPColor)
+							{
+								// Divider(H::Draw.Scale(), H::Draw.Scale(4), -H::Draw.Scale());
+								FColorPicker("ESP color", &tGroup.m_tESPColor);
+							}
 						}
 						PopTransparent();
-						
-						// Show ESP color preview
-						if (tGroup.m_bUseESPColor)
-						{
-							Divider(H::Draw.Scale(), H::Draw.Scale(4), -H::Draw.Scale());
-							SameLine();
-							FText("ESP Color:");
-							SameLine();
-							ColorButton("##ESPColor", ColorToVec(tGroup.m_tESPColor), ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel, { H::Draw.Scale(20), H::Draw.Scale(20) });
-						}
 					}
 				} EndSection();
 				if (Section("Chams"))
@@ -799,19 +775,15 @@ void CMenu::MenuVisuals(int iTab)
 						{
 							FMDropdown("Visible material", &tGroup.m_tChams.Visible, FDropdownEnum::Left);
 							FMDropdown("Occluded material", &tGroup.m_tChams.Occluded, FDropdownEnum::Right);
+							// Chams color picker
+							// if (tGroup.m_bUseChamsColor)
+							// {
+							// 	Divider(H::Draw.Scale(), H::Draw.Scale(4), -H::Draw.Scale());
+							// 	FColorPicker("Chams color", &tGroup.m_tChamsColor);
+							// }
 						}
 						else
 							FMDropdown("Material", &tGroup.m_tChams.Visible);
-						
-						// Show Chams color preview
-						if (tGroup.m_bUseChamsColor)
-						{
-							Divider(H::Draw.Scale(), H::Draw.Scale(4), -H::Draw.Scale());
-							SameLine();
-							FText("Chams Color:");
-							SameLine();
-							ColorButton("##ChamsColor", ColorToVec(tGroup.m_tChamsColor), ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel, { H::Draw.Scale(20), H::Draw.Scale(20) });
-						}
 					}
 				} EndSection();
 			}
@@ -831,18 +803,14 @@ void CMenu::MenuVisuals(int iTab)
 						PushTransparent(!tGroup.m_tGlow.Blur);
 						{
 							FSlider("Blur scale", &tGroup.m_tGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
+							// Glow color picker
+							if (tGroup.m_bUseGlowColor)
+							{
+								// Divider(H::Draw.Scale(), H::Draw.Scale(4), -H::Draw.Scale());
+								FColorPicker("Glow color", &tGroup.m_tGlowColor);
+							}
 						}
 						PopTransparent();
-						
-						// Show Glow color preview
-						if (tGroup.m_bUseGlowColor)
-						{
-							Divider(H::Draw.Scale(), H::Draw.Scale(4), -H::Draw.Scale());
-							SameLine();
-							FText("Glow Color:");
-							SameLine();
-							ColorButton("##GlowColor", ColorToVec(tGroup.m_tGlowColor), ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel, { H::Draw.Scale(20), H::Draw.Scale(20) });
-						}
 					}
 				} EndSection();
 				if (Section("Rendering Info"))
@@ -882,6 +850,17 @@ void CMenu::MenuVisuals(int iTab)
 					FSlider(Vars::Radar::Main::Range);
 					FSlider(Vars::Radar::Main::BackgroundAlpha);
 					FSlider(Vars::Radar::Main::LineAlpha);
+				} EndSection();
+				if (Section("Colors", 8))
+				{
+					if (bHasGroups)
+					{
+						auto& tGroup = F::Groups.m_vGroups[gCurrentGroupIndex];
+						if (tGroup.m_bUseRadarColor)
+						{
+							FColorPicker("Radar color", &tGroup.m_tRadarColor);
+						}
+					}
 				} EndSection();
 				if (Section("Player", 8))
 				{
