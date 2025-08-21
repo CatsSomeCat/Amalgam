@@ -74,7 +74,7 @@ void CMenu::DrawMenu()
 		FTabs(
 			{
 				{ "AIMBOT", "GENERAL", "DRAW" },
-				{ "VISUALS", "ESP", "MISC##", "MENU" },
+				{ "VISUALS", "ESP", "MISC##", "RADAR", "MENU" },
 				{ "MISC", "MAIN", "HVH" },
 				{ "LOGS", "PLAYERLIST", "SETTINGS##", "OUTPUT" },
 				{ "SETTINGS", "CONFIG", "BINDS", "MATERIALS", "EXTRA" }
