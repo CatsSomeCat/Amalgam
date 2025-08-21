@@ -563,9 +563,9 @@ void CMenu::MenuVisuals(int iTab)
 				{
 					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
 					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
-					FToggle("Use ESP color", &tGroup.m_bUseESPColor, FToggleEnum::SameLine);
-					FToggle("Use Glow color", &tGroup.m_bUseGlowColor, FToggleEnum::SameLine);
-					FToggle("Use Radar color", &tGroup.m_bUseRadarColor, FToggleEnum::SameLine);
+					FToggle("Use ESP color", &tGroup.m_bUseESPColor, FToggleEnum::Left);
+					FToggle("Use Glow color", &tGroup.m_bUseGlowColor, FToggleEnum::Right);
+					FToggle("Use Radar color", &tGroup.m_bUseRadarColor, FToggleEnum::Left);
 				} EndSection();
 				if (Section("Targets"))
 				{
