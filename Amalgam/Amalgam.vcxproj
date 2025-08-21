@@ -1068,6 +1068,7 @@
     <ClCompile Include="src\SDK\Definitions\Misc\ChecksumCRC.cpp" />
     <ClCompile Include="src\SDK\Definitions\NullInterfaces.cpp" />
     <ClCompile Include="src\SDK\Events\Events.cpp" />
+    <ClCompile Include="src\SDK\Helpers\Color\Color.cpp" />
     <ClCompile Include="src\SDK\Helpers\Draw\Draw.cpp" />
     <ClCompile Include="src\SDK\Helpers\Entities\Entities.cpp" />
     <ClCompile Include="src\SDK\Helpers\Fonts\Fonts.cpp" />
@@ -1443,6 +1444,7 @@
     <ClInclude Include="src\SDK\Definitions\Types.h" />
     <ClInclude Include="src\SDK\Events\Events.h" />
     <ClInclude Include="src\SDK\Globals.h" />
+    <ClInclude Include="src\SDK\Helpers\Color\Color.h" />
     <ClInclude Include="src\SDK\Helpers\Draw\Draw.h" />
     <ClInclude Include="src\SDK\Helpers\Draw\Icons.h" />
     <ClInclude Include="src\SDK\Helpers\Entities\Entities.h" />
