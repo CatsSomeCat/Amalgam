@@ -318,13 +318,14 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 				{
 				case Vars::Radar::Player::IconEnum::Avatars:
 				{
-				    PlayerInfo_t pi{};
-				    if (I::EngineClient->GetPlayerInfo(pPlayer->entindex(), &pi) && !pi.fakeplayer)
+				    const uint32_t uAccountID = F::PlayerUtils.GetAccountID(pPlayer->entindex());
+				    if (uAccountID != 0)
 				    {
-				        int iType = 0; F::PlayerUtils.GetPlayerName(pPlayer->entindex(), nullptr, &iType);
+				        int iType = 0; 
+				        F::PlayerUtils.GetPlayerName(pPlayer->entindex(), nullptr, &iType);
 				        if (iType != 1)
 				        {
-				            H::Draw.Avatar(x, y, iSize, iSize, pi.friendsID);
+				            H::Draw.Avatar(x, y, iSize, iSize, uAccountID);
 				            break;
 				        }
 				    }
