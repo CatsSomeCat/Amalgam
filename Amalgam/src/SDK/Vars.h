@@ -173,7 +173,7 @@ namespace Vars
 		CVar(CheatTitle, "Cheat title", std::string("Amalgam"), VISUAL | DROPDOWN_AUTOUPDATE);
 		CVar(CheatTag, "Cheat tag", std::string("[Amalgam]"), VISUAL);
 		CVar(PrimaryKey, "Primary key", VK_INSERT, NOBIND);
-		CVar(SecondaryKey, "Secondary key", VK_F3, NOBIND);
+		// CVar(SecondaryKey, "Secondary key", VK_F3, NOBIND);
 
 		CVar(BindWindow, "Bind window", true);
 		CVar(BindWindowTitle, "Bind window title", true);
@@ -204,7 +204,13 @@ namespace Vars
 
 	NAMESPACE_BEGIN(Colors)
 		CVar(FOVCircle, "FOV circle color", Color_t(255, 255, 255, 100), VISUAL);
+		CVar(Relative, "Relative colors", false, VISUAL);
 		CVar(Local, "Local color", Color_t(255, 255, 255, 0), VISUAL);
+		CVar(Health, "Health color", Color_t(0, 225, 75, 255), VISUAL);
+		CVar(Ammo, "Ammo color", Color_t(127, 127, 127, 255), VISUAL);
+		CVar(Money, "Money color", Color_t(0, 150, 75, 255), VISUAL);
+		CVar(Powerup, "Powerup color", Color_t(255, 175, 0, 255), VISUAL);
+		CVar(Halloween, "Halloween color", Color_t(100, 0, 255, 255), VISUAL);
 
 		CVar(IndicatorGood, "Indicator good", Color_t(0, 255, 100, 255), NOSAVE | DEBUGVAR);
 		CVar(IndicatorMid, "Indicator mid", Color_t(255, 200, 0, 255), NOSAVE | DEBUGVAR);
