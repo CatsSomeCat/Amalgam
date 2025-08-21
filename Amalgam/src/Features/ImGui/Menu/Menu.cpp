@@ -836,6 +836,13 @@ void CMenu::MenuVisuals(int iTab)
 	// Radar
 	case 2:
 	{
+		const bool bHasGroups = !F::Groups.m_vGroups.empty();
+		
+		if (bHasGroups)
+		{
+			gCurrentGroupIndex = std::clamp(gCurrentGroupIndex, 0ui64, F::Groups.m_vGroups.size() - 1);
+		}
+		
 		if (BeginTable("VisualsRadarTable", 2))
 		{
 			/* Column 1 */
