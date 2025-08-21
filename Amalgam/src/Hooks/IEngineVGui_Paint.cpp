@@ -13,6 +13,7 @@
 #include "../Features/Visuals/CameraWindow/CameraWindow.h"
 #include "../Features/Visuals/Notifications/Notifications.h"
 #include "../Features/Aimbot/AutoHeal/AutoHeal.h"
+#include "../Features/Visuals/Radar/Radar.h"
 
 MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 	void* rcx, int iMode)
@@ -61,6 +62,10 @@ MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 		H::Draw.UpdateScreenSize();
 		H::Draw.Start();
 		{
+			if (auto pLocal = H::Entities.GetLocal())
+			{
+				F::Radar.Run(pLocal);
+			}
 			F::Notifications.Draw();
 		}
 		H::Draw.End();
