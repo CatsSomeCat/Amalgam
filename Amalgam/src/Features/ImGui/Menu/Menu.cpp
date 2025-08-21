@@ -799,8 +799,9 @@ void CMenu::MenuVisuals(int iTab)
 				} EndSection();
 				if (Section("Rendering Info"))
 				{
-					FText("Total Groups: " + std::to_string(F::Groups.m_vGroups.size()));
-					FText("Active Groups: " + std::to_string([&]() {
+					const std::string sTotal = "Total Groups: " + std::to_string(F::Groups.m_vGroups.size());
+					FText(sTotal.c_str());
+					const std::string sActive = "Active Groups: " + std::to_string([&]() {
 						int count = 0;
 						for (size_t i = 0; i < F::Groups.m_vGroups.size(); i++)
 						{
@@ -808,7 +809,8 @@ void CMenu::MenuVisuals(int iTab)
 								count++;
 						}
 						return count;
-					}()));
+					}());
+					FText(sActive.c_str());
 				} EndSection();
 			}
 			EndTable();
