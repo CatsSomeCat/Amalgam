@@ -74,7 +74,7 @@ void CMenu::DrawMenu()
 		FTabs(
 			{
 				{ "AIMBOT", "GENERAL", "DRAW" },
-				{ "VISUALS", "GROUPS", "ESP", "MISC##", "RADAR", "MENU" },
+				{ "VISUALS", "GROUPS", "RENDERING", "MISC##", "RADAR", "MENU" },
 				{ "MISC", "MAIN", "HVH" },
 				{ "LOGS", "PLAYERLIST", "SETTINGS##", "OUTPUT" },
 				{ "SETTINGS", "CONFIG", "BINDS", "MATERIALS", "EXTRA" }
@@ -446,13 +446,15 @@ void CMenu::MenuVisuals(int iTab)
 {
 	using namespace ImGui;
 
+	static size_t gCurrentGroupIndex = 0;
+
 	switch (iTab)
 	{
 	// Groups
 	case 0:
 	{
 		// fake angle/viewmodel visuals, pickup timers?
-		static size_t iCurrentGroup = 0;
+		auto& iCurrentGroup = gCurrentGroupIndex;
 
 		if (Section("Main"))
 		{
@@ -589,80 +591,6 @@ void CMenu::MenuVisuals(int iTab)
 			/* Column 2 */
 			TableNextColumn();
 			{
-				if (Section("ESP"))
-				{
-					std::vector<const char*> vEntries = { "Name", "Box", "Distance" };
-					std::vector<int> vValues = { ESPEnum::Name, ESPEnum::Box, ESPEnum::Distance };
-					if (tGroup.m_iTargets & TargetsEnum::Players)
-					{
-						vEntries.insert(vEntries.end(), { "Bones" });
-						vValues.insert(vValues.end(), { ESPEnum::Bones });
-					}
-					if (tGroup.m_iTargets & (TargetsEnum::Players | TargetsEnum::Buildings))
-					{
-						vEntries.insert(vEntries.end(), { "Health bar", "Health text" });
-						vValues.insert(vValues.end(), { ESPEnum::HealthBar, ESPEnum::HealthText });
-					}
-					if (tGroup.m_iTargets & TargetsEnum::Players)
-					{
-						vEntries.insert(vEntries.end(), { "Uber bar", "Uber text", "Class icon", "Class text", "Weapon icon", "Weapon text", "Priority", "Labels", "Buffs", "Debuffs" });
-						vValues.insert(vValues.end(), { ESPEnum::UberBar, ESPEnum::UberText, ESPEnum::ClassIcon, ESPEnum::ClassText, ESPEnum::WeaponIcon, ESPEnum::WeaponText, ESPEnum::Priority, ESPEnum::Labels, ESPEnum::Buffs, ESPEnum::Debuffs });
-					}
-					if (tGroup.m_iTargets & (TargetsEnum::Players | TargetsEnum::Buildings | TargetsEnum::Projectiles | TargetsEnum::Objective))
-					{
-						vEntries.insert(vEntries.end(), { "Flags" });
-						vValues.insert(vValues.end(), { ESPEnum::Flags });
-					}
-					if (tGroup.m_iTargets & TargetsEnum::Players)
-					{
-						vEntries.insert(vEntries.end(), { "Lag compensation", "Ping", "KDR" });
-						vValues.insert(vValues.end(), { ESPEnum::LagCompensation, ESPEnum::Ping, ESPEnum::KDR });
-					}
-					if (tGroup.m_iTargets & (TargetsEnum::Buildings | TargetsEnum::Projectiles))
-					{
-						vEntries.insert(vEntries.end(), { "Owner" });
-						vValues.insert(vValues.end(), { ESPEnum::Owner });
-					}
-					if (tGroup.m_iTargets & TargetsEnum::Buildings)
-					{
-						vEntries.insert(vEntries.end(), { "Level", "Ammo bars", "Ammo text" });
-						vValues.insert(vValues.end(), { ESPEnum::Level, ESPEnum::AmmoBars, ESPEnum::AmmoText });
-					}
-					if (tGroup.m_iTargets & TargetsEnum::Objective)
-					{
-						vEntries.insert(vEntries.end(), { "Intel return time" });
-						vValues.insert(vValues.end(), { ESPEnum::IntelReturnTime });
-					}
-
-					PushTransparent(tGroup.m_iTargets && !(tGroup.m_iTargets& TargetsEnum::ESP));
-					{
-						FDropdown("Draw", &tGroup.m_iESP, vEntries, vValues, FDropdownEnum::Multi);
-					}
-					PopTransparent();
-				} EndSection();
-				if (Section("Chams"))
-				{
-					if (!tGroup.m_iTargets || tGroup.m_iTargets & TargetsEnum::Occluded)
-					{
-						FMDropdown("Visible material", &tGroup.m_tChams.Visible, FDropdownEnum::Left);
-						FMDropdown("Occluded material", &tGroup.m_tChams.Occluded, FDropdownEnum::Right);
-					}
-					else
-						FMDropdown("Material", &tGroup.m_tChams.Visible);
-				} EndSection();
-				if (Section("Glow", 8))
-				{
-					PushTransparent(!tGroup.m_tGlow.Stencil);
-					{
-						FSlider("Stencil scale", &tGroup.m_tGlow.Stencil, 0, 10, 1, "%i", FSliderEnum::Left | FSliderEnum::Min);
-					}
-					PopTransparent();
-					PushTransparent(!tGroup.m_tGlow.Blur);
-					{
-						FSlider("Blur scale", &tGroup.m_tGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
-					}
-					PopTransparent();
-				} EndSection();
 				if (Section("Misc", 8))
 				{
 					FToggle("Backtrack", &tGroup.m_bBacktrack, FToggleEnum::Left);
@@ -729,145 +657,158 @@ void CMenu::MenuVisuals(int iTab)
 		}
 		break;
 	}
-	// ESP
+	// Rendering
 	case 1:
 	{
-		if (BeginTable("VisualsMiscTable", 2))
+		const bool bHasGroups = !F::Groups.m_vGroups.empty();
+
+		if (Section("Group", 8))
+		{
+			if (!bHasGroups)
+			{
+				TextColored(F::Render.Inactive.Value, "No groups created yet. Create one in Groups to edit rendering.");
+			}
+			else
+			{
+				gCurrentGroupIndex = std::clamp(gCurrentGroupIndex, 0ui64, F::Groups.m_vGroups.size() - 1);
+				auto& tSel = F::Groups.m_vGroups[gCurrentGroupIndex];
+
+				TextColored(F::Render.Inactive.Value, std::format("Editing group {} / {}:", gCurrentGroupIndex + 1, F::Groups.m_vGroups.size()).c_str());
+				SameLine();
+				PushStyleColor(ImGuiCol_Text, F::Render.Accent.Value);
+				FText(tSel.m_sName.c_str());
+				PopStyleColor();
+
+				SameLine(GetWindowWidth() - H::Draw.Scale(74));
+				PushDisabled(F::Groups.m_vGroups.size() <= 1);
+				if (IconButton(ICON_MD_KEYBOARD_ARROW_LEFT))
+					gCurrentGroupIndex = (gCurrentGroupIndex == 0 ? F::Groups.m_vGroups.size() - 1 : gCurrentGroupIndex - 1);
+				SameLine();
+				if (IconButton(ICON_MD_KEYBOARD_ARROW_RIGHT))
+					gCurrentGroupIndex = (gCurrentGroupIndex + 1) % F::Groups.m_vGroups.size();
+				PopDisabled();
+			}
+		} EndSection();
+
+		if (BeginTable("RenderingTable", 2))
 		{
 			/* Column 1 */
 			TableNextColumn();
 			{
-				if (Section("UI"))
+				if (Section("ESP"))
 				{
-					FDropdown(Vars::Visuals::UI::StreamerMode, FDropdownEnum::Left);
-					FDropdown(Vars::Visuals::UI::ChatTags, FDropdownEnum::Right, -10);
-					FColorPicker(Vars::Colors::Local, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
-					PushTransparent(!Vars::Visuals::UI::FieldOfView.Value);
+					if (!bHasGroups)
 					{
-						FSlider(Vars::Visuals::UI::FieldOfView);
+						TextColored(F::Render.Inactive.Value, "Create at least one group to configure ESP");
 					}
-					PopTransparent();
-					PushTransparent(!Vars::Visuals::UI::ZoomFieldOfView.Value);
+					else
 					{
-						FSlider(Vars::Visuals::UI::ZoomFieldOfView);
+						auto& tGroup = F::Groups.m_vGroups[gCurrentGroupIndex];
+						std::vector<const char*> vEntries = { "Name", "Box", "Distance" };
+						std::vector<int> vValues = { ESPEnum::Name, ESPEnum::Box, ESPEnum::Distance };
+						if (tGroup.m_iTargets & TargetsEnum::Players)
+						{
+							vEntries.insert(vEntries.end(), { "Bones" });
+							vValues.insert(vValues.end(), { ESPEnum::Bones });
+						}
+						if (tGroup.m_iTargets & (TargetsEnum::Players | TargetsEnum::Buildings))
+						{
+							vEntries.insert(vEntries.end(), { "Health bar", "Health text" });
+							vValues.insert(vValues.end(), { ESPEnum::HealthBar, ESPEnum::HealthText });
+						}
+						if (tGroup.m_iTargets & TargetsEnum::Players)
+						{
+							vEntries.insert(vEntries.end(), { "Uber bar", "Uber text", "Class icon", "Class text", "Weapon icon", "Weapon text", "Priority", "Labels", "Buffs", "Debuffs" });
+							vValues.insert(vValues.end(), { ESPEnum::UberBar, ESPEnum::UberText, ESPEnum::ClassIcon, ESPEnum::ClassText, ESPEnum::WeaponIcon, ESPEnum::WeaponText, ESPEnum::Priority, ESPEnum::Labels, ESPEnum::Buffs, ESPEnum::Debuffs });
+						}
+						if (tGroup.m_iTargets & (TargetsEnum::Players | TargetsEnum::Buildings | TargetsEnum::Projectiles | TargetsEnum::Objective))
+						{
+							vEntries.insert(vEntries.end(), { "Flags" });
+							vValues.insert(vValues.end(), { ESPEnum::Flags });
+						}
+						if (tGroup.m_iTargets & TargetsEnum::Players)
+						{
+							vEntries.insert(vEntries.end(), { "Lag compensation", "Ping", "KDR" });
+							vValues.insert(vValues.end(), { ESPEnum::LagCompensation, ESPEnum::Ping, ESPEnum::KDR });
+						}
+						if (tGroup.m_iTargets & (TargetsEnum::Buildings | TargetsEnum::Projectiles))
+						{
+							vEntries.insert(vEntries.end(), { "Owner" });
+							vValues.insert(vValues.end(), { ESPEnum::Owner });
+						}
+						if (tGroup.m_iTargets & TargetsEnum::Buildings)
+						{
+							vEntries.insert(vEntries.end(), { "Level", "Ammo bars", "Ammo text" });
+							vValues.insert(vValues.end(), { ESPEnum::Level, ESPEnum::AmmoBars, ESPEnum::AmmoText });
+						}
+						if (tGroup.m_iTargets & TargetsEnum::Objective)
+						{
+							vEntries.insert(vEntries.end(), { "Intel return time" });
+							vValues.insert(vValues.end(), { ESPEnum::IntelReturnTime });
+						}
+
+						PushTransparent(tGroup.m_iTargets && !(tGroup.m_iTargets & TargetsEnum::ESP));
+						{
+							FDropdown("Draw", &tGroup.m_iESP, vEntries, vValues, FDropdownEnum::Multi);
+						}
+						PopTransparent();
 					}
-					PopTransparent();
-					/*
-					PushTransparent(!Vars::Visuals::UI::AspectRatio.Value);
-					{
-						FSlider(Vars::Visuals::UI::AspectRatio);
-					}
-					PopTransparent();
-					*/
-					FToggle(Vars::Visuals::UI::RevealScoreboard, FToggleEnum::Left);
-					FToggle(Vars::Visuals::UI::ScoreboardUtility, FToggleEnum::Right);
-					FToggle(Vars::Visuals::UI::ScoreboardColors, FToggleEnum::Left);
-					FToggle(Vars::Visuals::UI::CleanScreenshots, FToggleEnum::Right);
 				} EndSection();
-				if (Section("Thirdperson", 8))
+				if (Section("Chams"))
 				{
-					FToggle(Vars::Visuals::Thirdperson::Enabled, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Thirdperson::Crosshair, FToggleEnum::Right);
-					FSlider(Vars::Visuals::Thirdperson::Distance);
-					FSlider(Vars::Visuals::Thirdperson::Right);
-					FSlider(Vars::Visuals::Thirdperson::Up);
-				} EndSection();
-				if (Vars::Debug::Options.Value)
-				{
-					if (Section("##Debug"))
+					if (!bHasGroups)
 					{
-						FToggle(Vars::Visuals::Thirdperson::Scale, FToggleEnum::Left);
-						FToggle(Vars::Visuals::Thirdperson::Collide, FToggleEnum::Right);
-					} EndSection();
-				}
-				if (Section("Effects"))
-				{
-					// https://developer.valvesoftware.com/wiki/Team_Fortress_2/Particles
-					// https://forums.alliedmods.net/showthread.php?t=127111
-					FSDropdown(Vars::Visuals::Effects::BulletTracer, FDropdownEnum::Left);
-					FSDropdown(Vars::Visuals::Effects::CritTracer, FDropdownEnum::Right);
-					FSDropdown(Vars::Visuals::Effects::MedigunBeam, FDropdownEnum::Left);
-					FSDropdown(Vars::Visuals::Effects::MedigunCharge, FDropdownEnum::Right);
-					FSDropdown(Vars::Visuals::Effects::ProjectileTrail, FDropdownEnum::Left);
-					FDropdown(Vars::Visuals::Effects::SpellFootsteps, FDropdownEnum::Right, -10);
-					FColorPicker(Vars::Colors::SpellFootstep, FColorPickerEnum::SameLine | FColorPickerEnum::NoTooltip, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
-					FDropdown(Vars::Visuals::Effects::RagdollEffects);
-					FToggle(Vars::Visuals::Effects::DrawIconsThroughWalls);
-					FToggle(Vars::Visuals::Effects::DrawDamageNumbersThroughWalls);
+						TextColored(F::Render.Inactive.Value, "Create at least one group to configure Chams");
+					}
+					else
+					{
+						auto& tGroup = F::Groups.m_vGroups[gCurrentGroupIndex];
+						if (!tGroup.m_iTargets || tGroup.m_iTargets & TargetsEnum::Occluded)
+						{
+							FMDropdown("Visible material", &tGroup.m_tChams.Visible, FDropdownEnum::Left);
+							FMDropdown("Occluded material", &tGroup.m_tChams.Occluded, FDropdownEnum::Right);
+						}
+						else
+							FMDropdown("Material", &tGroup.m_tChams.Visible);
+					}
 				} EndSection();
 			}
 			/* Column 2 */
 			TableNextColumn();
 			{
-				if (Section("Removals", 8))
+				if (Section("Glow", 8))
 				{
-					FToggle(Vars::Visuals::Removals::Interpolation, FToggleEnum::Left);
-					PushTransparent(Vars::Visuals::Removals::Interpolation.Value);
+					if (!bHasGroups)
 					{
-						FToggle(Vars::Visuals::Removals::Lerp, FToggleEnum::Right);
+						TextColored(F::Render.Inactive.Value, "Create at least one group to configure Glow");
 					}
-					PopTransparent();
-					FToggle(Vars::Visuals::Removals::Disguises, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Removals::Taunts, FToggleEnum::Right);
-					FToggle(Vars::Visuals::Removals::Scope, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Removals::PostProcessing, FToggleEnum::Right);
-					FToggle(Vars::Visuals::Removals::ScreenOverlays, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Removals::ScreenEffects, FToggleEnum::Right);
-					FToggle(Vars::Visuals::Removals::ViewPunch, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Removals::AngleForcing, FToggleEnum::Right);
-					FToggle(Vars::Visuals::Removals::Ragdolls, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Removals::Gibs, FToggleEnum::Right);
-					FToggle(Vars::Visuals::Removals::MOTD, FToggleEnum::Left);
+					else
+					{
+						auto& tGroup = F::Groups.m_vGroups[gCurrentGroupIndex];
+						PushTransparent(!tGroup.m_tGlow.Stencil);
+						{
+							FSlider("Stencil scale", &tGroup.m_tGlow.Stencil, 0, 10, 1, "%i", FSliderEnum::Left | FSliderEnum::Min);
+						}
+						PopTransparent();
+						PushTransparent(!tGroup.m_tGlow.Blur);
+						{
+							FSlider("Blur scale", &tGroup.m_tGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
+						}
+						PopTransparent();
+					}
 				} EndSection();
-				if (Section("Viewmodel", 8))
+				if (Section("Rendering Info"))
 				{
-					FToggle(Vars::Visuals::Viewmodel::CrosshairAim, FToggleEnum::Left);
-					FToggle(Vars::Visuals::Viewmodel::ViewmodelAim, FToggleEnum::Right);
-					FSlider(Vars::Visuals::Viewmodel::OffsetX, FSliderEnum::Left);
-					FSlider(Vars::Visuals::Viewmodel::Pitch, FSliderEnum::Right);
-					FSlider(Vars::Visuals::Viewmodel::OffsetY, FSliderEnum::Left);
-					FSlider(Vars::Visuals::Viewmodel::Yaw, FSliderEnum::Right);
-					FSlider(Vars::Visuals::Viewmodel::OffsetZ, FSliderEnum::Left);
-					FSlider(Vars::Visuals::Viewmodel::Roll, FSliderEnum::Right);
-					PushTransparent(!Vars::Visuals::Viewmodel::SwayScale.Value || !Vars::Visuals::Viewmodel::SwayInterp.Value);
-					{
-						FSlider(Vars::Visuals::Viewmodel::SwayScale, FSliderEnum::Left);
-						FSlider(Vars::Visuals::Viewmodel::SwayInterp, FSliderEnum::Right);
-					}
-					PopTransparent();
-				} EndSection();
-				if (Section("World"))
-				{
-					FDropdown(Vars::Visuals::World::Modulations);
-					FSDropdown(Vars::Visuals::World::WorldTexture, FDropdownEnum::Left);
-					FSDropdown(Vars::Visuals::World::SkyboxChanger, FDropdownEnum::Right);
-					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::World));
-					{
-						FColorPicker(Vars::Colors::WorldModulation, FColorPickerEnum::Left);
-					}
-					PopTransparent();
-					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Sky));
-					{
-						FColorPicker(Vars::Colors::SkyModulation, FColorPickerEnum::Right);
-					}
-					PopTransparent();
-					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Prop));
-					{
-						FColorPicker(Vars::Colors::PropModulation, FColorPickerEnum::Left);
-					}
-					PopTransparent();
-					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Particle));
-					{
-						FColorPicker(Vars::Colors::ParticleModulation, FColorPickerEnum::Right);
-					}
-					PopTransparent();
-					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Fog));
-					{
-						FColorPicker(Vars::Colors::FogModulation, FColorPickerEnum::Left);
-					}
-					PopTransparent();
-					FToggle(Vars::Visuals::World::NearPropFade, FToggleEnum::Left);
-					FToggle(Vars::Visuals::World::NoPropFade, FToggleEnum::Right);
+					FText("Total Groups: " + std::to_string(F::Groups.m_vGroups.size()));
+					FText("Active Groups: " + std::to_string([&]() {
+						int count = 0;
+						for (size_t i = 0; i < F::Groups.m_vGroups.size(); i++)
+						{
+							if (Vars::ESP::ActiveGroups.Value & (1 << i))
+								count++;
+						}
+						return count;
+					}()));
 				} EndSection();
 			}
 			EndTable();
@@ -926,8 +867,146 @@ void CMenu::MenuVisuals(int iTab)
 		}
 		break;
 	}
-	// Menu
+	// Misc
 	case 3:
+	{
+		if (BeginTable("VisualsMiscTable", 2))
+		{
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("UI", 8))
+				{
+					FDropdown(Vars::Visuals::UI::StreamerMode, FDropdownEnum::Left);
+					FDropdown(Vars::Visuals::UI::ChatTags, FDropdownEnum::Right, -10);
+					FColorPicker(Vars::Colors::Local, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					PushTransparent(!Vars::Visuals::UI::FieldOfView.Value);
+					{
+						FSlider(Vars::Visuals::UI::FieldOfView);
+					}
+					PopTransparent();
+					PushTransparent(!Vars::Visuals::UI::ZoomFieldOfView.Value);
+					{
+						FSlider(Vars::Visuals::UI::ZoomFieldOfView);
+					}
+					PopTransparent();
+					FToggle(Vars::Visuals::UI::RevealScoreboard, FToggleEnum::Left);
+					FToggle(Vars::Visuals::UI::ScoreboardUtility, FToggleEnum::Right);
+					FToggle(Vars::Visuals::UI::ScoreboardColors, FToggleEnum::Left);
+					FToggle(Vars::Visuals::UI::CleanScreenshots, FToggleEnum::Right);
+				} EndSection();
+				if (Section("Thirdperson", 8))
+				{
+					FToggle(Vars::Visuals::Thirdperson::Enabled, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Thirdperson::Crosshair, FToggleEnum::Right);
+					FSlider(Vars::Visuals::Thirdperson::Distance);
+					FSlider(Vars::Visuals::Thirdperson::Right);
+					FSlider(Vars::Visuals::Thirdperson::Up);
+				} EndSection();
+				if (Vars::Debug::Options.Value)
+				{
+					if (Section("##Debug Thirdperson"))
+					{
+						FToggle(Vars::Visuals::Thirdperson::Scale, FToggleEnum::Left);
+						FToggle(Vars::Visuals::Thirdperson::Collide, FToggleEnum::Right);
+					} EndSection();
+				}
+				if (Section("Effects", 8))
+				{
+					// https://developer.valvesoftware.com/wiki/Team_Fortress_2/Particles
+					// https://forums.alliedmods.net/showthread.php?t=127111
+					FSDropdown(Vars::Visuals::Effects::BulletTracer, FDropdownEnum::Left);
+					FSDropdown(Vars::Visuals::Effects::CritTracer, FDropdownEnum::Right);
+					FSDropdown(Vars::Visuals::Effects::MedigunBeam, FDropdownEnum::Left);
+					FSDropdown(Vars::Visuals::Effects::MedigunCharge, FDropdownEnum::Right);
+					FSDropdown(Vars::Visuals::Effects::ProjectileTrail, FDropdownEnum::Left);
+					FDropdown(Vars::Visuals::Effects::SpellFootsteps, FDropdownEnum::Right, -10);
+					FColorPicker(Vars::Colors::SpellFootstep, FColorPickerEnum::SameLine | FColorPickerEnum::NoTooltip, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FDropdown(Vars::Visuals::Effects::RagdollEffects);
+					FToggle(Vars::Visuals::Effects::DrawIconsThroughWalls);
+					FToggle(Vars::Visuals::Effects::DrawDamageNumbersThroughWalls);
+				} EndSection();
+				if (Section("Removals", 8))
+				{
+					FToggle(Vars::Visuals::Removals::Interpolation, FToggleEnum::Left);
+					PushTransparent(Vars::Visuals::Removals::Interpolation.Value);
+					{
+						FToggle(Vars::Visuals::Removals::Lerp, FToggleEnum::Right);
+					}
+					PopTransparent();
+					FToggle(Vars::Visuals::Removals::Disguises, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::Taunts, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::Scope, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::PostProcessing, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::ScreenOverlays, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::ScreenEffects, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::ViewPunch, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::AngleForcing, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::Ragdolls, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::Gibs, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::MOTD, FToggleEnum::Left);
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("Viewmodel", 8))
+				{
+					FToggle(Vars::Visuals::Viewmodel::CrosshairAim, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Viewmodel::ViewmodelAim, FToggleEnum::Right);
+					FSlider(Vars::Visuals::Viewmodel::OffsetX, FSliderEnum::Left);
+					FSlider(Vars::Visuals::Viewmodel::Pitch, FSliderEnum::Right);
+					FSlider(Vars::Visuals::Viewmodel::OffsetY, FSliderEnum::Left);
+					FSlider(Vars::Visuals::Viewmodel::Yaw, FSliderEnum::Right);
+					FSlider(Vars::Visuals::Viewmodel::OffsetZ, FSliderEnum::Left);
+					FSlider(Vars::Visuals::Viewmodel::Roll, FSliderEnum::Right);
+					PushTransparent(!Vars::Visuals::Viewmodel::SwayScale.Value || !Vars::Visuals::Viewmodel::SwayInterp.Value);
+					{
+						FSlider(Vars::Visuals::Viewmodel::SwayScale, FSliderEnum::Left);
+						FSlider(Vars::Visuals::Viewmodel::SwayInterp, FSliderEnum::Right);
+					}
+					PopTransparent();
+				} EndSection();
+				if (Section("World"))
+				{
+					FDropdown(Vars::Visuals::World::Modulations);
+					FSDropdown(Vars::Visuals::World::WorldTexture, FDropdownEnum::Left);
+					FSDropdown(Vars::Visuals::World::SkyboxChanger, FDropdownEnum::Right);
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::World));
+					{
+						FColorPicker(Vars::Colors::WorldModulation, FColorPickerEnum::Left);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Sky));
+					{
+						FColorPicker(Vars::Colors::SkyModulation, FColorPickerEnum::Right);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Prop));
+					{
+						FColorPicker(Vars::Colors::PropModulation, FColorPickerEnum::Left);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Particle));
+					{
+						FColorPicker(Vars::Colors::ParticleModulation, FColorPickerEnum::Right);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Fog));
+					{
+						FColorPicker(Vars::Colors::FogModulation, FColorPickerEnum::Left);
+					}
+					PopTransparent();
+					FToggle(Vars::Visuals::World::NearPropFade, FToggleEnum::Left);
+					FToggle(Vars::Visuals::World::NoPropFade, FToggleEnum::Right);
+				} EndSection();
+			}
+			EndTable();
+		}
+		break;
+	}
+	// Menu
+	case 4:
 	{
 		if (BeginTable("MenuTable", 2))
 		{
@@ -975,6 +1054,16 @@ void CMenu::MenuVisuals(int iTab)
 			}
 			EndTable();
 		}
+		break;
+	}
+	// [Empty case - reserved for future use]
+	case 5:
+	{
+		// This case is reserved for future features
+		SetCursorPos({ GetWindowWidth() / 2 - H::Draw.Scale(100), GetWindowHeight() / 2 - H::Draw.Scale(20) });
+		PushStyleColor(ImGuiCol_Text, F::Render.Inactive.Value);
+		FText("This tab is reserved for future features");
+		PopStyleColor();
 		break;
 	}
 	}
@@ -1073,6 +1162,8 @@ void CMenu::MenuMisc(int iTab)
 						FToggle(Vars::Misc::Game::AntiCheatCritHack);
 					} EndSection();
 				}
+
+
 				if (Section("Queueing"))
 				{
 					FDropdown(Vars::Misc::Queueing::ForceRegions);
