@@ -33,7 +33,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 
 	PlayerCache_t& tCache = mCache[pPlayer];
 	tCache.m_flAlpha = pGroup->m_tColor.a / 255.f;
-	tCache.m_tColor = F::Groups.GetColor(pPlayer, pGroup).Alpha(255);
+	tCache.m_tColor = F::Groups.GetColor(pPlayer, pGroup, "ESP").Alpha(255);
 	tCache.m_bBox = pGroup->m_iESP & ESPEnum::Box;
 	tCache.m_bBones = pGroup->m_iESP & ESPEnum::Bones;
 
@@ -395,7 +395,7 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 
 	BuildingCache_t& tCache = mCache[pBuilding];
 	tCache.m_flAlpha = pGroup->m_tColor.a / 255.f;
-	tCache.m_tColor = F::Groups.GetColor(pOwner ? pOwner : pBuilding, pGroup).Alpha(255);
+	tCache.m_tColor = F::Groups.GetColor(pOwner ? pOwner : pBuilding, pGroup, "ESP").Alpha(255);
 	tCache.m_bBox = pGroup->m_iESP & ESPEnum::Box;
 
 	if (pGroup->m_iESP & ESPEnum::Distance)
@@ -514,7 +514,7 @@ static inline void StoreProjectile(CBaseEntity* pProjectile, CTFPlayer* pLocal, 
 
 	EntityCache_t& tCache = mCache[pProjectile];
 	tCache.m_flAlpha = pGroup->m_tColor.a / 255.f;
-	tCache.m_tColor = F::Groups.GetColor(pOwner ? pOwner : pProjectile, pGroup);
+	tCache.m_tColor = F::Groups.GetColor(pOwner ? pOwner : pProjectile, pGroup, "ESP");
 	tCache.m_bBox = pGroup->m_iESP & ESPEnum::Box;
 
 	if (pGroup->m_iESP & ESPEnum::Distance)
@@ -609,7 +609,7 @@ static inline void StoreObjective(CBaseEntity* pObjective, CTFPlayer* pLocal, Gr
 
 	EntityCache_t& tCache = mCache[pObjective];
 	tCache.m_flAlpha = pGroup->m_tColor.a / 255.f;
-	tCache.m_tColor = F::Groups.GetColor(pObjective, pGroup);
+	tCache.m_tColor = F::Groups.GetColor(pObjective, pGroup, "ESP");
 	tCache.m_bBox = pGroup->m_iESP & ESPEnum::Box;
 
 	if (pGroup->m_iESP & ESPEnum::Distance)
@@ -657,7 +657,7 @@ static inline void StoreMisc(CBaseEntity* pEntity, CTFPlayer* pLocal, Group_t* p
 {
 	EntityCache_t& tCache = mCache[pEntity];
 	tCache.m_flAlpha = pGroup->m_tColor.a / 255.f;
-	tCache.m_tColor = F::Groups.GetColor(pEntity, pGroup);
+	tCache.m_tColor = F::Groups.GetColor(pEntity, pGroup, "ESP");
 	tCache.m_bBox = pGroup->m_iESP & ESPEnum::Box;
 
 	if (pGroup->m_iESP & ESPEnum::Distance)

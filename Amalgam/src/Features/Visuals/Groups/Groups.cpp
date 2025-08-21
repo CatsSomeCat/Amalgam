@@ -1,5 +1,6 @@
 #include "Groups.h"
 
+#include <cstring>
 #include "../../Players/PlayerUtils.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
 
@@ -425,6 +426,40 @@ Color_t CGroups::GetColor(CBaseEntity* pEntity, Group_t* pGroup)
 		return pGroup->m_tColor;
 
 	return pTag->m_tColor.Alpha(pGroup->m_tColor.a);
+}
+
+Color_t CGroups::GetColor(CBaseEntity* pEntity, Group_t* pGroup, const char* szModule)
+{
+	Color_t tModuleColor = pGroup->m_tColor; // Default to main color
+	
+	// Get module-specific color if enabled
+	if (strcmp(szModule, "ESP") == 0 && pGroup->m_bUseESPColor)
+		tModuleColor = pGroup->m_tESPColor.a > 0 ? pGroup->m_tESPColor : tModuleColor;
+	else if (strcmp(szModule, "Glow") == 0 && pGroup->m_bUseGlowColor)
+		tModuleColor = pGroup->m_tGlowColor.a > 0 ? pGroup->m_tGlowColor : tModuleColor;
+	else if (strcmp(szModule, "Radar") == 0 && pGroup->m_bUseRadarColor)
+		tModuleColor = pGroup->m_tRadarColor.a > 0 ? pGroup->m_tRadarColor : tModuleColor;
+	else if (strcmp(szModule, "Chams") == 0 && pGroup->m_bUseChamsColor)
+		tModuleColor = pGroup->m_tChamsColor.a > 0 ? pGroup->m_tChamsColor : tModuleColor;
+	
+	// Apply tags override logic if enabled
+	if (!pGroup->m_bTagsOverrideColor)
+		return tModuleColor;
+
+	if (!pEntity->IsPlayer())
+	{
+		pEntity = pEntity->IsBuilding() ? pEntity->As<CBaseObject>()->m_hBuilder()
+			: pEntity->IsProjectile() ? F::ProjSim.GetEntities(pEntity).second
+			: pEntity->m_hOwnerEntity();
+		if (!pEntity || !pEntity->IsPlayer())
+			return tModuleColor;
+	}
+
+	auto pTag = F::PlayerUtils.GetSignificantTag(pEntity->entindex());
+	if (!pTag)
+		return tModuleColor;
+
+	return pTag->m_tColor.Alpha(tModuleColor.a);
 }
 
 bool CGroups::GroupsActive()

@@ -282,11 +282,12 @@ namespace Vars
 				VA_LIST("Friends", "Party", "Unprioritized", "Invulnerable", "Invisible", "Unsimulated", "Dead ringer", "Vaccinator", "Disguised", "Taunting", "Team"),
 				Friends = 1 << 0, Party = 1 << 1, Unprioritized = 1 << 2, Invulnerable = 1 << 3, Invisible = 1 << 4, Unsimulated = 1 << 5, DeadRinger = 1 << 6, Vaccinator = 1 << 7, Disguised = 1 << 8, Taunting = 1 << 9, Team = 1 << 10);
 			CVar(AimFOV, "Aim FOV", 30.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 180.f);
+			CVar(MaxDistance, "Maximum distance", 1000.f, SLIDER_MIN | SLIDER_PRECISION, 100.f, 5000.f, 100.f, "%g");
 			CVar(MaxTargets, "Max targets", 2, SLIDER_MIN, 1, 6);
 			CVar(IgnoreInvisible, "Ignore invisible", 50.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AssistStrength, "Assist strength", 25.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 1.f, "%g%%");
 			CVar(TickTolerance, "Tick tolerance", 4, SLIDER_CLAMP, 0, 21);
-			CVar(AutoShoot, "Auto shoot", true);
+			CVar(AutoShoot, "Auto shoot", false);
 			CVar(FOVCircle, "FOV Circle", true, VISUAL);
 			CVar(NoSpread, "No spread", false);
 

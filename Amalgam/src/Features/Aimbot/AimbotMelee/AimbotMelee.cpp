@@ -38,6 +38,9 @@ std::vector<Target_t> CAimbotMelee::GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 				iPriority = 0;
 
 			float flDistTo = vLocalPos.DistTo(vPos);
+			if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+				continue;
+
 			vTargets.emplace_back(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, iPriority);
 		}
 	}
@@ -63,6 +66,9 @@ std::vector<Target_t> CAimbotMelee::GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 				continue;
 
 			float flDistTo = vLocalPos.DistTo(vPos);
+			if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+				continue;
+
 			vTargets.emplace_back(pEntity, pEntity->IsSentrygun() ? TargetEnum::Sentry : pEntity->IsDispenser() ? TargetEnum::Dispenser : TargetEnum::Teleporter, vPos, vAngleTo, flFOVTo, flDistTo);
 		}
 	}
@@ -81,6 +87,9 @@ std::vector<Target_t> CAimbotMelee::GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 				continue;
 
 			float flDistTo = vLocalPos.DistTo(vPos);
+			if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+				continue;
+
 			vTargets.emplace_back(pEntity, TargetEnum::NPC, vPos, vAngleTo, flFOVTo, flDistTo);
 		}
 	}
@@ -626,6 +635,9 @@ bool CAimbotMelee::RunSapper(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd
 		const float flDistTo = vLocalPos.DistTo(vPoint);
 
 		if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
+			continue;
+
+		if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
 			continue;
 
 		vTargets.emplace_back(pBuilding, TargetEnum::Unknown, vPoint, vAngleTo, flFOVTo, flDistTo);

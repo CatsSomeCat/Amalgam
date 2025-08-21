@@ -95,7 +95,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pGargy, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pGargy, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 39);
@@ -116,7 +116,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pBook, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pBook, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 38);
@@ -137,7 +137,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pPower, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pPower, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 37);
@@ -158,7 +158,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(bBomb, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(bBomb, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 36);
@@ -179,7 +179,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pBook, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pBook, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 35);
@@ -200,7 +200,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pAmmo, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pAmmo, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 34);
@@ -221,7 +221,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 					if (Vars::Radar::World::Background.Value)
 					{
 						const float flRadius = sqrtf(pow(iSize, 2) * 2) / 2;
-						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pHealth, pGroup));
+						H::Draw.FillCircle(x, y, flRadius, 20, F::Groups.GetColor(pHealth, pGroup, "Radar"));
 					}
 
 					H::Draw.Texture(x, y, iSize, iSize, 33);
@@ -245,7 +245,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 			int x, y, z;
 			if (GetDrawPosition(pLocal, pBuilding, x, y, z))
 			{
-				const Color_t tColor = F::Groups.GetColor(pBuilding, pGroup);
+				const Color_t tColor = F::Groups.GetColor(pBuilding, pGroup, "Radar");
 
 				int iBounds = iSize;
 				if (Vars::Radar::Building::Background.Value)
@@ -299,7 +299,7 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 			int x, y, z;
 			if (GetDrawPosition(pLocal, pPlayer, x, y, z))
 			{
-				const Color_t tColor = F::Groups.GetColor(pPlayer, pGroup);
+				const Color_t tColor = F::Groups.GetColor(pPlayer, pGroup, "Radar");
 
 				int iBounds = iSize;
 				if (Vars::Radar::Player::Background.Value)

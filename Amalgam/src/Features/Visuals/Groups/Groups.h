@@ -13,8 +13,20 @@ struct Group_t
 {
 	std::string m_sName = "";
 
-	Color_t m_tColor = {};
+	Color_t m_tColor = {}; // Main/fallback color
 	bool m_bTagsOverrideColor = true;
+
+	// Per-module colors
+	Color_t m_tESPColor = {};     // ESP-specific color
+	Color_t m_tGlowColor = {};    // Glow-specific color  
+	Color_t m_tRadarColor = {};   // Radar-specific color
+	Color_t m_tChamsColor = {};   // Chams-specific color
+
+	// Toggles for per-module colors
+	bool m_bUseESPColor = false;
+	bool m_bUseGlowColor = false;
+	bool m_bUseRadarColor = false;
+	bool m_bUseChamsColor = false;
 
 	int m_iTargets = 0b0;
 	int m_iConditions = 0b0;
@@ -60,6 +72,7 @@ public:
 	bool GetGroup(int iType);
 
 	Color_t GetColor(CBaseEntity* pEntity, Group_t* pGroup);
+	Color_t GetColor(CBaseEntity* pEntity, Group_t* pGroup, const char* szModule); // Module-specific color
 	bool GroupsActive();
 
 	std::vector<Group_t> m_vGroups = {}; // loop through this in reverse so back groups have higher priority

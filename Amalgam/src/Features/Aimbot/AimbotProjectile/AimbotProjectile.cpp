@@ -73,6 +73,9 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 			}
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+			if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+				continue;
+
 			vTargets.emplace_back(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, iPriority);
 		}
 
@@ -99,6 +102,9 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 				continue;
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+			if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+				continue;
+
 			vTargets.emplace_back(pEntity, pEntity->IsSentrygun() ? TargetEnum::Sentry : pEntity->IsDispenser() ? TargetEnum::Dispenser : TargetEnum::Teleporter, vPos, vAngleTo, flFOVTo, flDistTo);
 		}
 	}
@@ -132,6 +138,9 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 					continue;
 
 				float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+				if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+					continue;
+
 				vTargets.emplace_back(pEntity, TargetEnum::Sticky, vPos, vAngleTo, flFOVTo, flDistTo);
 			}
 		}
@@ -151,6 +160,9 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 				continue;
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+			if (flDistTo > Vars::Aimbot::General::MaxDistance.Value)
+				continue;
+
 			vTargets.emplace_back(pEntity, TargetEnum::NPC, vPos, vAngleTo, flFOVTo, flDistTo);
 		}
 	}

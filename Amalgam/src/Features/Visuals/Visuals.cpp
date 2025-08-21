@@ -847,7 +847,7 @@ void CVisuals::Store(CTFPlayer* pLocal)
 		filter.pSkip = pPlayer;
 		SDK::Trace(vShootPos, vShootEnd, MASK_SHOT, &filter, &trace);
 
-		m_vSightLines.emplace_back(vShootPos, trace.endpos, F::Groups.GetColor(pPlayer, pGroup), !pGroup->m_bSightlinesIgnoreZ);
+		m_vSightLines.emplace_back(vShootPos, trace.endpos, F::Groups.GetColor(pPlayer, pGroup, "ESP"), !pGroup->m_bSightlinesIgnoreZ);
 	}
 }
 

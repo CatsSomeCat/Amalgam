@@ -118,7 +118,7 @@ void CGlow::Store(CTFPlayer* pLocal)
 		if (pEntity->IsDormant() || !pEntity->ShouldDraw())
 			continue;
 
-		Color_t tColor = F::Groups.GetColor(pEntity, pGroup);
+		Color_t tColor = F::Groups.GetColor(pEntity, pGroup, "Glow");
 		if (pGroup->m_tGlow()
 			&& SDK::IsOnScreen(pEntity, pEntity->IsBaseCombatWeapon() || pEntity->IsWearable()))
 			m_mEntities[pGroup->m_tGlow].emplace_back(pEntity, tColor);
