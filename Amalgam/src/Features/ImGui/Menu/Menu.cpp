@@ -562,10 +562,11 @@ void CMenu::MenuVisuals(int iTab)
 				if (Section("Color", 8))
 				{
 					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
-					FToggle("Use ESP color", &tGroup.m_bUseESPColor, FToggleEnum::Left);
-					FToggle("Use Glow color", &tGroup.m_bUseGlowColor, FToggleEnum::Right);
-					FToggle("Use Radar color", &tGroup.m_bUseRadarColor, FToggleEnum::Left);
-					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
+					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Left);
+					SameLine();
+					FToggle("Use ESP color", &tGroup.m_bUseESPColor, FToggleEnum::Right);
+					FToggle("Use Glow color", &tGroup.m_bUseGlowColor, FToggleEnum::Left);
+					FToggle("Use Radar color", &tGroup.m_bUseRadarColor, FToggleEnum::Right);
 				} EndSection();
 				if (Section("Targets"))
 				{
@@ -802,11 +803,13 @@ void CMenu::MenuVisuals(int iTab)
 						if (tGroup.m_bUseESPColor)
 						{
 							// ESP color picker
+							SameLine();
 							FColorPicker("ESP color", &tGroup.m_tESPColor);
 						}
 						if (tGroup.m_bUseGlowColor)
 						{
 							// Glow color picker
+							SameLine();
 							FColorPicker("Glow color", &tGroup.m_tGlowColor);
 						}
 					}
