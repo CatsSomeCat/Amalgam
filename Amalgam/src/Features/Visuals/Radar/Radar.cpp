@@ -318,17 +318,21 @@ void CRadar::DrawPoints(CTFPlayer* pLocal)
 				{
 				case Vars::Radar::Player::IconEnum::Avatars:
 				{
-					PlayerInfo_t pi{};
-					if (I::EngineClient->GetPlayerInfo(pPlayer->entindex(), &pi) && !pi.fakeplayer)
-					{
-						int iType = 0; F::PlayerUtils.GetPlayerName(pPlayer->entindex(), nullptr, &iType);
-						if (iType != 1)
-						{
-							H::Draw.Avatar(x, y, iSize, iSize, pi.friendsID);
-							break;
-						}
-					}
-					[[fallthrough]];
+				    const int nIndex = pPlayer->entindex();
+				    if (auto pResource = H::Entities.GetResource())
+				    {
+				        if (pResource->m_bValid(nIndex) && !pResource->IsFakePlayer(nIndex))
+				        {
+				            int iType = 0; 
+				            F::PlayerUtils.GetPlayerName(nIndex, nullptr, &iType);
+				            if (iType != 1)
+				            {
+				                H::Draw.Avatar(x, y, iSize, iSize, pResource->m_iAccountID(nIndex));
+				                break;
+				            }
+				        }
+				    }
+				    [[fallthrough]];
 				}
 				case Vars::Radar::Player::IconEnum::Portraits:
 					if (int iTeam = pPlayer->IsInValidTeam())
