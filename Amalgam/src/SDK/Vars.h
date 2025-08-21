@@ -205,12 +205,20 @@ namespace Vars
 	NAMESPACE_BEGIN(Colors)
 		CVar(FOVCircle, "FOV circle color", Color_t(255, 255, 255, 100), VISUAL);
 		CVar(Relative, "Relative colors", false, VISUAL);
-		CVar(Local, "Local color", Color_t(255, 255, 255, 0), VISUAL);
+		CVar(TeamRed, "RED color", Color_t(225, 60, 60, 255), VISUAL);
+		CVar(TeamBlu, "BLU color", Color_t(75, 175, 225, 255), VISUAL);
+		CVar(Enemy, "Enemy color", Color_t(225, 60, 60, 255), VISUAL);
+		CVar(Team, "Team color", Color_t(0, 255, 100, 255), VISUAL);
+		CVar(Local, "Local color", Color_t(255, 255, 255, 255), VISUAL);
+		CVar(Target, "Target color", Color_t(255, 0, 0, 255), VISUAL);
 		CVar(Health, "Health color", Color_t(0, 225, 75, 255), VISUAL);
 		CVar(Ammo, "Ammo color", Color_t(127, 127, 127, 255), VISUAL);
 		CVar(Money, "Money color", Color_t(0, 150, 75, 255), VISUAL);
 		CVar(Powerup, "Powerup color", Color_t(255, 175, 0, 255), VISUAL);
+		CVar(NPC, "NPC color", Color_t(255, 255, 255, 255), VISUAL);
 		CVar(Halloween, "Halloween color", Color_t(100, 0, 255, 255), VISUAL);
+		CVar(Backtrack, VA_LIST("Color", "Backtrack color"), Color_t(255, 0, 0, 0), VISUAL);
+		CVar(FakeAngle, VA_LIST("Color", "Fake angle color"), Color_t(255, 255, 255, 0), VISUAL);
 
 		CVar(IndicatorGood, "Indicator good", Color_t(0, 255, 100, 255), NOSAVE | DEBUGVAR);
 		CVar(IndicatorMid, "Indicator mid", Color_t(255, 200, 0, 255), NOSAVE | DEBUGVAR);
