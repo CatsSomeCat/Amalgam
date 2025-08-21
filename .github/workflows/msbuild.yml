@@ -2,10 +2,10 @@ name: MSBuild CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
     tags: [ 'v*' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   
   # This enables manual builds with configurable options
   workflow_dispatch:
