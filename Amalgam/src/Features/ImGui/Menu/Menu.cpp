@@ -797,7 +797,8 @@ void CMenu::MenuVisuals(int iTab)
 						auto& tGroup = F::Groups.m_vGroups[gCurrentGroupIndex];
 						if (tGroup.m_bUseRadarColor)
 						{
-							FColorPicker("Radar color", &tGroup.m_tRadarColor);
+							// Radar color picker
+							FColorPicker("Radar color", &tGroup.m_tRadarColor, FColorPickerEnum::Left);
 						}
 						if (tGroup.m_bUseESPColor)
 						{
@@ -807,7 +808,7 @@ void CMenu::MenuVisuals(int iTab)
 						if (tGroup.m_bUseGlowColor)
 						{
 							// Glow color picker
-							FColorPicker("Glow color", &tGroup.m_tGlowColor, FColorPickerEnum::SameLine);
+							FColorPicker("Glow color", &tGroup.m_tGlowColor, FColorPickerEnum::Right);
 						}
 					}
 				} EndSection();
