@@ -167,14 +167,21 @@ void CAutoRocketJump::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* p
 						if (!pLocal->IsOnGround() || pLocal->IsSwimming())
 							break;
 
-						auto WillHit = [](CTFPlayer* pLocal, const Vec3& vOrigin, const Vec3& vPoint)
+						auto WillHit = [&](CTFPlayer* pLocal, const Vec3& vOrigin, const Vec3& vPoint)
 							{
 								const Vec3 vOriginal = pLocal->GetAbsOrigin();
 								pLocal->SetAbsOrigin(vOrigin);
 								Vec3 vPos; reinterpret_cast<CCollisionProperty*>(pLocal->GetCollideable())->CalcNearestPoint(vPoint, &vPos);
 								pLocal->SetAbsOrigin(vOriginal);
 
-								return vPoint.DistTo(vPos) < 120.f && SDK::VisPosWorld(pLocal, pLocal, vPoint, vOrigin + pLocal->m_vecViewOffset(), MASK_SHOT);
+								float flDistance = 120.f;
+								if (!bCurrGrounded && Vars::Misc::Movement::AllowCtapInAir.Value)
+								{
+									flDistance = Vars::Misc::Movement::CtapInAirDistance.Value;
+								}
+								
+								// return vPoint.DistTo(vPos) < 120.f && SDK::VisPosWorld(pLocal, pLocal, vPoint, vOrigin + pLocal->m_vecViewOffset(), MASK_SHOT);
+								return vPoint.DistTo(vPos) < flDistance && SDK::VisPosWorld(pLocal, pLocal, vPoint, vOrigin + pLocal->m_vecViewOffset(), MASK_SHOT);
 							};
 
 						bWillHit = WillHit(pLocal, tStorage.m_MoveData.m_vecAbsOrigin, trace.endpos + trace.plane.normal);

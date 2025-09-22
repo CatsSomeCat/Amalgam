@@ -700,13 +700,15 @@ namespace Vars
 			CVar(AutoJumpbug, "Auto jumpbug", false);
 			CVar(NoPush, "No push", false);
 			CVar(AutoRocketJump, "Auto rocket jump", false);
-			CVar(AutoCTap, "Auto ctap", false);
 			CVar(FastStop, "Fast stop", false);
 			CVar(FastAccelerate, "Fast accelerate", false);
 			CVar(DuckSpeed, "Duck speed", false);
 			CVar(MovementLock, "Movement lock", false);
 			CVar(BreakJump, "Break jump", false);
 			CVar(ShieldTurnRate, "Shield turn rate", false);
+			CVar(AutoCTap, "Auto ctap", false);
+			CVar(AllowCtapInAir, "Allow ctap in air", false);
+			CVar(CtapInAirDistance, "C-tap in air distance", 25.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f);
 
 			CVar(TimingOffset, "Timing offset", 0, NOSAVE | DEBUGVAR, 0, 3);
 			CVar(ChokeCount, "Choke count", 1, NOSAVE | DEBUGVAR, 0, 3);
@@ -717,6 +719,7 @@ namespace Vars
 			CVarEnum(AntiBackstab, "Anti-backstab", 0, NONE, nullptr,
 				VA_LIST("Off", "Yaw", "Pitch", "Fake"),
 				Off, Yaw, Pitch, Fake);
+			CVar(AutoJoin, "Autojoin class", 0);
 			CVar(AntiAFK, "Anti-AFK", false);
 			CVar(AntiAutobalance, "Anti-autobalance", false);
 			CVar(TauntControl, "Taunt control", false);

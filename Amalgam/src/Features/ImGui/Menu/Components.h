@@ -18,8 +18,9 @@ Enum(FSlider, None = 0, Left = 1 << 0, Right = 1 << 1, Clamp = 1 << 2, Min = 1 <
 Enum(FDropdown, None = 0, Left = 1 << 0, Right = 1 << 1, Multi = 1 << 2, Modifiable = 1 << 3);
 Enum(FSDropdown, None = 0, Custom = 1 << 2, AutoUpdate = 1 << 3);
 Enum(FColorPicker, None = 0, Left = 1 << 0, Right = 1 << 1, Full = 1 << 2, SameLine = 1 << 3, Tooltip = 1 << 4, NoTooltip = 1 << 5, RetainPosition = 1 << 6, HoverContents = 1 << 7, RemoveVisuals = 1 << 8);
+Enum(FColorPickerIconButton, None = 0, NoAlphaBar = 1 << 0, NoSidePreview = 1 << 2, NoOptions = 1 << 3, NoInputs = 1 << 4);
 
-Enum(Widget, Invalid, FToggle, FSlider, FISlider = FSlider, FFSlider, FIRSlider, FFRSlider, FDropdown, FSDropdown, FMDropdown, FColorPicker, FGColorPicker, FKeybind);
+Enum(Widget, Invalid, FToggle, FSlider, FISlider = FSlider, FFSlider, FIRSlider, FFRSlider, FDropdown, FSDropdown, FMDropdown, FColorPickerIconButton, FColorPicker, FGColorPicker, FKeybind);
 
 struct WidgetWindow_t
 {
@@ -1989,6 +1990,299 @@ namespace ImGui
 		return bReturn;
 	}
 
+	inline bool FColorPickerIconButton(
+		const char* sIcon,
+		Color_t* pColor,
+		int iFlags = FColorPickerIconButtonEnum::None,
+		float flSize = H::Draw.Scale(24),
+		ImVec4 tColor = {1,1,1,-1},
+		bool* pHovered = nullptr)
+	{
+		if (!pColor) return false;
+	
+		// --- Icon Button ---
+		if (Transparent || Disabled)
+			PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		if (tColor.w >= 0.f)
+			PushStyleColor(ImGuiCol_Text, tColor);
+	
+		PushFont(F::Render.IconFont);
+		ImVec2 vOriginalPos = GetCursorPos();
+		std::string sID = std::format("{}##{}", sIcon, (uintptr_t)pColor);
+		bool bPressed = Button(sID.c_str(), { flSize, flSize });
+	
+		if (!Disabled && IsItemHovered() && GetMouseCursor() != ImGuiMouseCursor_Hand)
+		{
+			SetMouseCursor(ImGuiMouseCursor_Hand);
+	
+			ImColor tTransparent = GetStyle().Colors[ImGuiCol_Text];
+			tTransparent.Value.w *= (IsMouseDown(ImGuiMouseButton_Left) ? 0.1f : 0.05f) * GetStyle().Alpha;
+	
+			ImDrawList* pDrawList = GetWindowDrawList();
+			ImVec2 vDrawPos = GetDrawPos() + ImVec2(vOriginalPos.x + flSize / 2, vOriginalPos.y + flSize / 2);
+			pDrawList->AddCircleFilled(vDrawPos, flSize / 2, tTransparent);
+		}
+	
+		if (pHovered)
+			*pHovered = IsItemHovered();
+	
+		PopFont();
+		if (tColor.w >= 0.f)
+			PopStyleColor();
+		if (Transparent || Disabled)
+			PopStyleVar();
+	
+		bool bChanged = false;
+	
+		// Popup handling
+		std::string sPopupID = std::format("cp_popup_{:x}", (uintptr_t)pColor);
+		if (bPressed && !Disabled)
+		{
+			ImVec2 item_min = GetItemRectMin();
+			ImVec2 item_size = GetItemRectSize();
+			ImVec2 popup_pos = { item_min.x, item_min.y + item_size.y };
+	
+			SetNextWindowPos(popup_pos, ImGuiCond_Appearing);
+			OpenPopup(sPopupID.c_str());
+		}
+	
+		// --- Popup with ColorEdit4 to match FColorPicker styling ---
+		if (BeginPopup(sPopupID.c_str(), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+		{
+			PushStyleVar(ImGuiStyleVar_Alpha, 1.f);
+			PushStyleVar(ImGuiStyleVar_FramePadding, { H::Draw.Scale(2), H::Draw.Scale(2) });
+			PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, H::Draw.Scale(4) });
+			PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, { H::Draw.Scale(4), 0 });
+			PushStyleVar(ImGuiStyleVar_PopupBorderSize, H::Draw.Scale());
+			PushStyleColor(ImGuiCol_PopupBg, F::Render.Background0p5.Value);
+
+			ImVec4 tTemp = ColorToVec(*pColor);
+
+            // This flag is not needed (and would be incorrect) when using ColorPicker4 directly
+            // ImGuiColorEditFlags_NoPicker
+
+			ImGuiColorEditFlags editFlags = ImGuiColorEditFlags_NoLabel |
+											ImGuiColorEditFlags_NoBorder |
+											ImGuiColorEditFlags_NoTooltip |
+											ImGuiColorEditFlags_LargeAlphaGrid |
+											ImGuiColorEditFlags_NoRoundRestrict;
+
+			// Apply iFlags
+			if (!(iFlags & FColorPickerIconButtonEnum::NoAlphaBar))
+				editFlags |= ImGuiColorEditFlags_AlphaBar;
+		
+			if (iFlags & FColorPickerIconButtonEnum::NoSidePreview)
+				editFlags |= ImGuiColorEditFlags_NoSidePreview;
+			
+			if (iFlags & FColorPickerIconButtonEnum::NoOptions)
+				editFlags |= ImGuiColorEditFlags_NoOptions;
+			
+			if (iFlags & FColorPickerIconButtonEnum::NoInputs)
+				editFlags |= ImGuiColorEditFlags_NoInputs;
+
+			// Use ColorPicker4 for popup color picker (ColorEdit4 is a button)
+			bool bReturn = ColorPicker4("##picker", &tTemp.x, editFlags);
+
+			if (bReturn)
+				*pColor = VecToColor(tTemp);
+
+			bChanged = bReturn;
+
+			PopStyleColor();
+			PopStyleVar(5);
+			EndPopup();
+		}
+		
+		return Disabled ? false : (bPressed || bChanged);
+	}
+	
+	inline bool FDropdown(const char* sLabel, int* pVar, std::vector<const char*> vEntries, std::vector<int> vValues = {}, int iFlags = FDropdownEnum::None, int iSizeOffset = 0, const char* sDefaultPreview = "None", bool* pHovered = nullptr, int* pModified = nullptr)
+	{
+		bool bReturn = false;
+
+		if (Transparent || Disabled)
+			PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+
+		bool bTitle = sLabel[0] != '#';
+
+		if (vValues.empty())
+		{
+			int i = 0; for (auto& sEntry : vEntries)
+			{
+				if (FNV1A::Hash32(sEntry) == FNV1A::Hash32Const("##Divider"))
+					continue;
+
+				vValues.push_back(iFlags & FDropdownEnum::Multi ? 1 << i : i);
+				i++;
+			}
+		}
+
+		std::string sPreview = "";
+		if (!(iFlags & FDropdownEnum::Multi) || *pVar)
+		{
+			size_t i = 0; for (auto& iValue : vValues)
+			{
+				while (FNV1A::Hash32(vEntries[i]) == FNV1A::Hash32Const("##Divider"))
+					i++;
+
+				if (iFlags & FDropdownEnum::Multi && *pVar & iValue)
+					sPreview += std::format("{}, ", StripDoubleHash(vEntries[i]).c_str());
+				else if (!(iFlags & FDropdownEnum::Multi) && *pVar == iValue)
+					sPreview = std::format("{}##", StripDoubleHash(vEntries[i]).c_str());
+				i++;
+			}
+			if (sPreview.length() > 1)
+			{
+				sPreview.pop_back(); sPreview.pop_back();
+			}
+		}
+		if (sPreview.empty())
+			sPreview = sDefaultPreview;
+
+		ImVec2 vSize = { GetWindowWidth(), H::Draw.Scale(bTitle ? 40 : 24) };
+		if (iFlags & (FDropdownEnum::Left | FDropdownEnum::Right))
+			vSize.x = vSize.x / 2 - GetStyle().WindowPadding.x * 1.5f;
+		else
+			vSize.x -= GetStyle().WindowPadding.x * 2.f;
+		if (iFlags & FDropdownEnum::Right)
+			SameLine(vSize.x + GetStyle().WindowPadding.x * 2.f);
+		iSizeOffset = strstr(sLabel, "## Bind") ? 0 : H::Draw.Scale(iSizeOffset, Scale_Round);
+		vSize.x += iSizeOffset;
+
+		ImVec2 vOriginalPos = GetCursorPos();
+		DebugShift({ 0, GetStyle().WindowPadding.y });
+
+		if (Disabled)
+		{	// lol
+			Button("##", vSize);
+			SetCursorPos(vOriginalPos);
+			DebugShift({ 0, GetStyle().WindowPadding.y });
+		}
+
+		PushStyleVar(ImGuiStyleVar_FramePadding, { 0.f, H::Draw.Scale(bTitle ? 13.5f : 5.5f) });
+		PushItemWidth(vSize.x);
+
+		bool bActive = BeginCombo(std::format("##{}", sLabel).c_str(), "", ImGuiComboFlags_CustomPreview | ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_HeightLarge);
+		if (bActive)
+		{
+			DebugDummy({ 0, H::Draw.Scale(8) });
+
+			PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, H::Draw.Scale(19) });
+			int i = 0; for (auto& sEntry : vEntries)
+			{
+				if (FNV1A::Hash32(sEntry) == FNV1A::Hash32Const("##Divider"))
+				{
+					ImVec2 vDrawPos = GetDrawPos(); float flPosY = GetCursorPosY();
+					ImColor tInactive = F::Render.Inactive; tInactive.Value.w *= GetStyle().Alpha;
+					GetWindowDrawList()->AddRectFilled({ vDrawPos.x + H::Draw.Scale(17), vDrawPos.y + flPosY }, { vDrawPos.x + GetWindowWidth() - H::Draw.Scale(17), vDrawPos.y + flPosY + H::Draw.Scale(1) }, tInactive);
+					DebugDummy({});
+					continue;
+				}
+
+				std::string sStripped = StripDoubleHash(sEntry);
+				if (iFlags & FDropdownEnum::Multi)
+				{
+					bool bFlagActive = *pVar & vValues[i];
+
+					ImVec2 vOriginalPos2 = GetCursorPos();
+					if (FSelectable(std::format("##{}{}", sEntry, i).c_str(), nullptr, 0, bFlagActive, ImGuiSelectableFlags_DontClosePopups))
+					{
+						if (bFlagActive)
+							*pVar &= ~vValues[i];
+						else
+							*pVar |= vValues[i];
+						bReturn = true;
+					}
+
+					ImVec2 vOriginalPos3 = GetCursorPos();
+					SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(40), vOriginalPos2.y });
+					TextColored(bFlagActive ? F::Render.Active : F::Render.Inactive, sStripped.c_str());
+					SameLine(); DebugDummy({ H::Draw.Scale(!GetCurrentWindow()->ScrollbarY ? 16 : 9), 0 });
+
+					SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(15), vOriginalPos2.y - H::Draw.Scale(1) });
+					IconImage(bFlagActive ? ICON_MD_CHECK_BOX : ICON_MD_CHECK_BOX_OUTLINE_BLANK, bFlagActive ? F::Render.Accent : F::Render.Inactive);
+					SetCursorPos(vOriginalPos3);
+				}
+				else
+				{
+					ImVec2 vOriginalPos2 = GetCursorPos();
+					if (iFlags & FDropdownEnum::Modifiable)
+					{
+						SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(11), vOriginalPos2.y - H::Draw.Scale(5) });
+						if (IconButton(vValues[i] == -1 ? ICON_MD_ADD_CIRCLE : ICON_MD_REMOVE_CIRCLE, H::Draw.Scale(24), {}) && pModified)
+							*pModified = vValues[i];
+						SetCursorPos(vOriginalPos2);
+					}
+
+					if (FSelectable(std::format("##{}{}", sEntry, i).c_str(), nullptr, 0, *pVar == vValues[i]))
+						*pVar = vValues[i], bReturn = true;
+
+					ImVec2 vOriginalPos3 = GetCursorPos();
+					SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(iFlags & FDropdownEnum::Modifiable ? 40 : 18), vOriginalPos2.y });
+					TextColored(*pVar == vValues[i] ? F::Render.Active : F::Render.Inactive, sStripped.c_str());
+					SameLine(); DebugDummy({ H::Draw.Scale(!GetCurrentWindow()->ScrollbarY ? 16 : 9), 0 });
+
+					if (iFlags & FDropdownEnum::Modifiable) // do second image here so as to not cover
+					{
+						SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(15), vOriginalPos2.y - H::Draw.Scale(1) });
+						IconImage(vValues[i] == -1 ? ICON_MD_ADD_CIRCLE : ICON_MD_REMOVE_CIRCLE);
+					}
+					SetCursorPos(vOriginalPos3);
+				}
+				i++;
+			}
+			PopStyleVar();
+
+			SetCursorPosY(GetCursorPosY() - H::Draw.Scale(10)); DebugDummy({});
+
+			EndCombo();
+		}
+		if (!Disabled && IsItemHovered())
+			SetMouseCursor(ImGuiMouseCursor_Hand);
+		if (pHovered)
+			*pHovered = IsItemHovered();
+		if (BeginComboPreview())
+		{
+			ImVec2 vOriginalPos2 = GetCursorPos();
+
+			if (bTitle)
+			{
+				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y - H::Draw.Scale(6) });
+				PushFont(F::Render.FontSmall);
+				TextColored(F::Render.Inactive, TruncateText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(45)).c_str());
+				PopFont();
+
+				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y + H::Draw.Scale(8) });
+				TextUnformatted(TruncateText(sPreview, vSize.x - H::Draw.Scale(45)).c_str());
+
+				SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
+				IconImage(bActive ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
+			}
+			else
+			{
+				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y });
+				TextUnformatted(TruncateText(sPreview, vSize.x - H::Draw.Scale(45)).c_str());
+
+				SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
+				IconImage(bActive ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
+			}
+
+			EndComboPreview();
+		}
+
+		PopItemWidth();
+		PopStyleVar();
+
+		SetCursorPos(vOriginalPos);
+		AddRowSize(vOriginalPos, { vSize.x, vSize.y + GetStyle().WindowPadding.y });
+		DebugDummy({ vSize.x, GetRowSize(vSize.y + GetStyle().WindowPadding.y) });
+
+		if (Transparent || Disabled)
+			PopStyleVar();
+
+		return bReturn;
+	}
+
 	inline std::string VK2STR(short key)
 	{
 		switch (key)
@@ -2618,4 +2912,11 @@ namespace ImGui
 	WRAPPER(FMDropdown, VA_LIST(std::vector<std::pair<std::string, Color_t>>), VA_LIST(int iFlags = 0, int iSizeOffset = 0), VA_LIST(&val, iFlags, iSizeOffset))
 	WRAPPER(FColorPicker, Color_t, VA_LIST(int iFlags = 0, ImVec2 vOffset = {}, ImVec2 vSize = { H::Draw.Scale(12), H::Draw.Scale(12) }, ImVec2 vIconOffset = {}), VA_LIST(&val, iFlags, vOffset, vSize, vIconOffset))
 	WRAPPER(FColorPicker, Gradient_t, VA_LIST(bool bStart = true, int iFlags = 0, ImVec2 vOffset = {}, ImVec2 vSize = { H::Draw.Scale(12), H::Draw.Scale(12) }, ImVec2 vIconOffset = {}), VA_LIST(bStart ? &val.StartColor : &val.EndColor, iFlags, vOffset, vSize, vIconOffset))
+	
+	WRAPPER(FColorPickerIconButton, Color_t,
+		VA_LIST(int iFlags = 0, float flButtonSize = H::Draw.Scale(24), ImVec4 tColor = {1,1,1,-1}),
+		VA_LIST(&val, iFlags, flButtonSize, tColor))
+	WRAPPER(FColorPickerIconButton, Gradient_t,
+		VA_LIST(int iFlags = 0, bool bStart = true, float flButtonSize = H::Draw.Scale(24), ImVec4 tColor = {1,1,1,-1}),
+		VA_LIST(bStart ? &val.StartColor : &val.EndColor, iFlags, flButtonSize, tColor))	
 }

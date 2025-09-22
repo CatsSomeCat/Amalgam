@@ -456,13 +456,14 @@ void CMenu::MenuVisuals(int iTab)
 		// fake angle/viewmodel visuals, pickup timers?
 		static size_t iCurrentGroup = 0;
 
-		if (Section("Groups"))
+		if (Section("Main"))
 		{
 			static std::string sStaticName;
 
 			PushDisabled(F::Groups.m_vGroups.size() >= sizeof(int) * 8); // for active groups flags
 			{
-				FSDropdown("Name", &sStaticName, {}, FDropdownEnum::Left | FSDropdownEnum::AutoUpdate, -H::Draw.Unscale(FCalcTextSize("CREATE").x) - 36);
+				FSDropdown("Name", &sStaticName, {}, FDropdownEnum::Left | FSDropdownEnum::AutoUpdate,
+						-H::Draw.Unscale(FCalcTextSize("CREATE").x) - 36);
 
 				PushDisabled(Disabled || sStaticName.empty());
 				{
@@ -471,7 +472,9 @@ void CMenu::MenuVisuals(int iTab)
 						F::Groups.m_vGroups.emplace_back(sStaticName);
 						sStaticName.clear();
 
-						iCurrentGroup = F::Groups.m_vGroups.size() - 1;
+						iCurrentGroup = static_cast<int>(F::Groups.m_vGroups.size() - 1);
+						// enable the newly created group by default
+						Vars::ESP::ActiveGroups.Value |= (1 << iCurrentGroup);
 					}
 				}
 				PopDisabled();
@@ -480,19 +483,13 @@ void CMenu::MenuVisuals(int iTab)
 
 			FDropdown(Vars::ESP::ActiveGroups, FDropdownEnum::Right | FDropdownEnum::Multi);
 
-			PushStyleColor(ImGuiCol_Text, F::Render.Inactive.Value);
-			SetCursorPos({ H::Draw.Scale(13), H::Draw.Scale(80) });
-			FText("Groups");
-			SetCursorPosY(GetCursorPosY() - H::Draw.Scale(5));
-			PopStyleColor();
-
 			auto positionToIndex = [](ImVec2 vPos)
-				{
-					int iIndex = floorf((vPos.y - GetCursorPosY() - H::Draw.Scale(4)) / H::Draw.Scale(36)) * 2
-								 + (vPos.x > GetWindowWidth() / 2 ? 1 : 0);
-					iIndex = std::clamp(iIndex, 0, int(F::Groups.m_vGroups.size() - 1));
-					return iIndex;
-				};
+			{
+				int iIndex = floorf((vPos.y - GetCursorPosY() - H::Draw.Scale(4)) / H::Draw.Scale(36)) * 2
+							+ (vPos.x > GetWindowWidth() / 2 ? 1 : 0);
+				iIndex = std::clamp(iIndex, 0, int(F::Groups.m_vGroups.size() - 1));
+				return iIndex;
+			};
 
 			static int iDragging = -1;
 			if (!IsMouseDown(ImGuiMouseButton_Left))
@@ -502,7 +499,8 @@ void CMenu::MenuVisuals(int iTab)
 				int iTo = positionToIndex(GetMousePos() - GetDrawPos());
 				if (iDragging != iTo)
 				{
-					SDK::Output("Dragged", std::format("{} -> {}", iDragging, iTo).c_str(), { 0, 255, 255 }, OUTPUT_CONSOLE | OUTPUT_DEBUG);
+					SDK::Output("Dragged", std::format("{} -> {}", iDragging, iTo).c_str(),
+								{ 0, 255, 255 }, OUTPUT_CONSOLE | OUTPUT_DEBUG);
 					F::Groups.Move(iDragging, iTo);
 					iDragging = iTo;
 				}
@@ -531,7 +529,9 @@ void CMenu::MenuVisuals(int iTab)
 
 					tColor2 = ColorToVec(tGroup.m_tColor.Lerp(Vars::Menu::Theme::Background.Value, 0.25f, LerpEnum::NoAlpha));
 					float flInset = H::Draw.Scale(0.5f) - 0.5f;
-					GetWindowDrawList()->AddRect({ vDrawPos.x + flInset, vDrawPos.y + flInset }, { vDrawPos.x - flInset + flWidth, vDrawPos.y - flInset + flHeight }, tColor2, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
+					GetWindowDrawList()->AddRect({ vDrawPos.x + flInset, vDrawPos.y + flInset },
+												{ vDrawPos.x - flInset + flWidth, vDrawPos.y - flInset + flHeight },
+												tColor2, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
 				}
 
 				// text + icons
@@ -543,8 +543,37 @@ void CMenu::MenuVisuals(int iTab)
 				}
 				PopTransparent(1, 1);
 
-				SetCursorPos({ vOriginalPos.x + flWidth - H::Draw.Scale(26), vOriginalPos.y + H::Draw.Scale(2) });
+				// top-right icon buttons: tag toggle, paint (color), delete
+				float flIconBaseX = vOriginalPos.x + flWidth - H::Draw.Scale(26);
+				float flIconY     = vOriginalPos.y + H::Draw.Scale(2);
+
+				// --- Tag override color toggle ---
+				SetCursorPos({ flIconBaseX - H::Draw.Scale(52), flIconY });
+				PushStyleColor(ImGuiCol_Text,
+					tGroup.m_bTagsOverrideColor ? ColorToVec(tGroup.m_tColor)
+												: GetStyleColorVec4(ImGuiCol_Text));
+				bool bTag = IconButton(ICON_MD_LABEL);
+				PopStyleColor();
+				if (IsItemHovered())
+					SetTooltip("Tags override color");
+				if (bTag)
+					tGroup.m_bTagsOverrideColor = !tGroup.m_bTagsOverrideColor;
+
+				// Unique identifier for the color picker popup
+				// const char* popup_id = "##GroupColorPicker";
+
+				// --- Group color picker (paint icon) ---
+				// Visible trigger button (icon only)
+				SetCursorPos({ flIconBaseX - H::Draw.Scale(26), flIconY });
+				bool bColor = FColorPickerIconButton(ICON_MD_FORMAT_PAINT, &tGroup.m_tColor, FColorPickerIconButtonEnum::NoAlphaBar | FColorPickerIconButtonEnum::NoSidePreview | FColorPickerIconButtonEnum::NoOptions);
+				if (IsItemHovered())
+					SetTooltip("Group color");
+
+				// --- Delete group ---
+				SetCursorPos({ flIconBaseX, flIconY });
 				bool bDelete = IconButton(ICON_MD_DELETE);
+				if (IsItemHovered())
+					SetTooltip("Delete group");
 
 				SetCursorPos(vOriginalPos);
 				bool bClicked = Button(std::format("##{}", iGroup).c_str(), { flWidth, flHeight });
@@ -560,7 +589,6 @@ void CMenu::MenuVisuals(int iTab)
 				if (FBeginPopup(std::format("RightClicked{}", iGroup).c_str()))
 				{
 					PushStyleVar(ImGuiStyleVar_ItemSpacing, { H::Draw.Scale(8), 0 });
-
 					{
 						static std::string sInput = "";
 
@@ -570,7 +598,6 @@ void CMenu::MenuVisuals(int iTab)
 						if (bEnter)
 							tGroup.m_sName = sInput;
 					}
-
 					PopStyleVar();
 					EndPopup();
 				}
@@ -578,9 +605,21 @@ void CMenu::MenuVisuals(int iTab)
 				if (!bDelete)
 					++it;
 				else
+				{
+					// remove bit from ActiveGroups for deleted group and shift subsequent bits down
+					int maskBelow = (1 << iGroup) - 1;
+					int maskAbove = ~((1 << (iGroup + 1)) - 1);
+					int below = Vars::ESP::ActiveGroups.Value & maskBelow;
+					int above = (Vars::ESP::ActiveGroups.Value & maskAbove) >> 1;
+					Vars::ESP::ActiveGroups.Value = below | above;
 					it = F::Groups.m_vGroups.erase(it);
+					if (iCurrentGroup >= F::Groups.m_vGroups.size())
+						iCurrentGroup = F::Groups.m_vGroups.empty() ? 0 : static_cast<int>(F::Groups.m_vGroups.size() - 1);
+				}
 			}
-		} EndSection();
+
+			EndSection(); // end "Groups"
+		}
 
 		if (!F::Groups.m_vGroups.empty()
 			&& BeginTable("VisualsESPTable", 2))
@@ -998,6 +1037,13 @@ void CMenu::MenuMisc(int iTab)
 					FToggle(Vars::Misc::Movement::MovementLock, FToggleEnum::Right);
 					FToggle(Vars::Misc::Movement::BreakJump, FToggleEnum::Left);
 					FToggle(Vars::Misc::Movement::ShieldTurnRate, FToggleEnum::Right);
+					FToggle(Vars::Misc::Movement::AutoCTap, FToggleEnum::Left);
+					FToggle(Vars::Misc::Movement::AllowCtapInAir, FToggleEnum::Right);
+					PushTransparent(!Vars::Misc::Movement::AllowCtapInAir.Value);
+					{
+						FSlider(Vars::Misc::Movement::CtapInAirDistance);
+					}
+					PopTransparent();
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
@@ -1011,6 +1057,7 @@ void CMenu::MenuMisc(int iTab)
 				if (Section("Automation"))
 				{
 					FDropdown(Vars::Misc::Automation::AntiBackstab); // pitch/fake _might_ slip up some auto backstabs
+					FDropdown(Vars::Misc::Automation::AutoJoin, { "Off", "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, { 0,1,3,7,4,6,9,5,2,8 }, FDropdownEnum::Right);
 					FToggle(Vars::Misc::Automation::AntiAFK, FToggleEnum::Left);
 					FToggle(Vars::Misc::Automation::AntiAutobalance, FToggleEnum::Right);
 					FToggle(Vars::Misc::Automation::TauntControl, FToggleEnum::Left);
