@@ -15,12 +15,13 @@ Enum(FButton, None = 0, Left = 1 << 0, Right = 1 << 1, Fit = 1 << 2, SameLine = 
 Enum(FKeybind, None = 0, AllowNone = 1 << 5);
 Enum(FToggle, None = 0, Left = 1 << 0, Right = 1 << 1, PlainColor = 1 << 2);
 Enum(FSlider, None = 0, Left = 1 << 0, Right = 1 << 1, Clamp = 1 << 2, Min = 1 << 3, Max = 1 << 4, Precision = 1 << 5, NoAutoUpdate = 1 << 6);
+Enum(FDualRangeSlider, None = 0, Left = 1 << 0, Right = 1 << 1, Clamp = 1 << 2, Min = 1 << 3, Max = 1 << 4, Precision = 1 << 5, NoAutoUpdate = 1 << 6);
 Enum(FDropdown, None = 0, Left = 1 << 0, Right = 1 << 1, Multi = 1 << 2, Modifiable = 1 << 3);
 Enum(FSDropdown, None = 0, Custom = 1 << 2, AutoUpdate = 1 << 3);
-Enum(FColorPicker, None = 0, Left = 1 << 0, Right = 1 << 1, Full = 1 << 2, SameLine = 1 << 3, Tooltip = 1 << 4, NoTooltip = 1 << 5, RetainPosition = 1 << 6, HoverContents = 1 << 7, RemoveVisuals = 1 << 8);
+Enum(FColorPicker, None = 0, Left = 1 << 0, Right = 1 << 1, Full = 1 << 2, SameLine = 1 << 3, Tooltip = 1 << 4, NoTooltip = 1 << 5, RetainPosition = 1 << 6, HoverContents = 1 << 7, RemoveVisuals = 1 << 8, NoButton = 1 << 9);
 Enum(FColorPickerIconButton, None = 0, NoAlphaBar = 1 << 0, NoSidePreview = 1 << 2, NoOptions = 1 << 3, NoInputs = 1 << 4);
 
-Enum(Widget, Invalid, FToggle, FSlider, FISlider = FSlider, FFSlider, FIRSlider, FFRSlider, FDropdown, FSDropdown, FMDropdown, FColorPickerIconButton, FColorPicker, FGColorPicker, FKeybind);
+Enum(Widget, Invalid, FToggle, FSlider, FISlider = FSlider, FFSlider, FIRSlider, FFRSlider, FDualRangeSlider, FDropdown, FSDropdown, FMDropdown, FColorPicker, FGColorPicker, FKeybind, FColorPickerIconButton);
 
 struct WidgetWindow_t
 {
@@ -53,6 +54,18 @@ namespace ImGui
 {
 	std::unordered_map<uint32_t, int> mActiveMap = {};
 
+	// Forward declarations for helpers used by wrappers defined earlier in this file.
+	// These are defined later in this header but need to be visible to call-sites
+	// such as FDualRangeSliderSeparate which appear before the definitions.
+	// template <class T>
+	// inline T& FGet(ConfigVar<T>& var, bool bDisable = false);
+
+	// template <class T>
+	// inline void FSet(ConfigVar<T>& var, T val);
+
+	// template <class T>
+	// inline void DrawBindInfo(ConfigVar<T>& var, T& val, const std::string& sBind, bool bNewPopup, bool& bLastHovered);
+
 	bool Disabled = false, Transparent = false;
 	int CurrentBind = DEFAULT_BIND;
 	bool Hovered = false;
@@ -62,6 +75,7 @@ namespace ImGui
 	{
 		vDisabled.push_back(Disabled = bDisabled);
 	}
+
 	inline void PopDisabled(int count = 1)
 	{
 		int iSize = int(vDisabled.size());
@@ -74,6 +88,7 @@ namespace ImGui
 			vDisabled.pop_back();
 		Disabled = !vDisabled.empty() ? vDisabled.back() : false;
 	}
+
 	inline void PushTransparent(bool bTransparent, bool bPushAlpha = false)
 	{
 		vTransparent.push_back(Transparent = bTransparent);
@@ -81,6 +96,7 @@ namespace ImGui
 		if (bPushAlpha)
 			PushStyleVar(ImGuiStyleVar_Alpha, !bTransparent ? 1.f : 0.5f);
 	}
+
 	inline void PopTransparent(int count = 1, int iPopAlpha = false)
 	{
 		int iSize = int(vTransparent.size());
@@ -101,10 +117,12 @@ namespace ImGui
 	{
 		return GetWindowPos() - GetCurrentWindow()->Scroll;
 	}
+
 	inline float GetDrawPosX()
 	{
 		return GetWindowPos().x - GetCurrentWindow()->Scroll.x;
 	}
+
 	inline float GetDrawPosY()
 	{
 		return GetWindowPos().y - GetCurrentWindow()->Scroll.y;
@@ -115,6 +133,7 @@ namespace ImGui
 		ImVec2 m_vPos;
 		ImVec2 m_vSize;
 	};
+
 	static std::vector<Row_t> vRowSizes = {};
 	inline void AddRowSize(ImVec2 vPos, ImVec2 vSize)
 	{
@@ -126,6 +145,7 @@ namespace ImGui
 			vRowSizes.clear();
 		vRowSizes.emplace_back(vPos, vSize);
 	}
+
 	inline float GetRowPos(bool bDrawPos = false)
 	{
 		if (!vRowSizes.empty())
@@ -133,6 +153,7 @@ namespace ImGui
 		else
 			return GetCursorPosY() + (bDrawPos ? GetDrawPos().y : 0.f);
 	}
+
 	inline float GetRowSize(float flDefault = 0.f)
 	{
 		if (GetCurrentWindow()->Flags & ImGuiWindowFlags_Popup)
@@ -150,13 +171,14 @@ namespace ImGui
 		return fmodf(flX, flY) + (flX < 0 ? flY : 0);
 	}
 
-	inline bool IsColorBright(ImColor tColor, float flValue = 0.686f, float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f)
+	inline bool IsColorBright(ImColor tColor)
 	{
-		return tColor.Value.x * flRed + tColor.Value.y * flGreen + tColor.Value.z * flBlue > flValue;
+		return tColor.Value.x + tColor.Value.y + tColor.Value.z > 2.f;
 	}
-	inline bool IsColorDark(ImColor tColor, float flValue = 0.313f, float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f)
+
+	inline bool IsColorDark(ImColor tColor)
 	{
-		return tColor.Value.x * flRed + tColor.Value.y * flGreen + tColor.Value.z * flBlue < flValue;
+		return tColor.Value.x + tColor.Value.y + tColor.Value.z < 0.788f;
 	}
 
 	inline ImVec4 ColorToVec(Color_t tColor)
@@ -181,6 +203,7 @@ namespace ImGui
 
 		Dummy(vSize);
 	}
+
 	inline void DebugShift(ImVec2 vSize)
 	{
 		ImVec2 vOriginalPos = GetCursorPos();
@@ -215,8 +238,6 @@ namespace ImGui
 		return sBegin.replace(sBegin.end() - sEnd.size(), sBegin.end(), "");
 	}
 
-
-
 	inline void RenderBackground(ImU32 uBackground)
 	{
 		ImVec2 vSize = GetWindowSize();
@@ -225,6 +246,7 @@ namespace ImGui
 
 		pDrawList->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x, vDrawPos.y + vSize.y }, uBackground, H::Draw.Scale(4));
 	}
+
 	inline void RenderBackground(ImU32 uBackground, ImU32 uBorder, float flInset = H::Draw.Scale())
 	{
 		ImVec2 vSize = GetWindowSize();
@@ -236,6 +258,7 @@ namespace ImGui
 		flInset += H::Draw.Scale(0.5f) - 0.5f - H::Draw.Scale();
 		pDrawList->AddRect({ vDrawPos.x + flInset, vDrawPos.y + flInset }, { vDrawPos.x - flInset + vSize.x, vDrawPos.y - flInset + vSize.y }, uBorder, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
 	}
+
 	inline void RenderTwoToneBackground(float flSize, ImU32 uTitle, ImU32 uBackground, bool bHorizontal = false)
 	{
 		ImVec2 vSize = GetWindowSize();
@@ -253,6 +276,7 @@ namespace ImGui
 			pDrawList->AddRectFilled({ vDrawPos.x + flSize, vDrawPos.y }, { vDrawPos.x + vSize.x, vDrawPos.y + vSize.y }, uBackground, H::Draw.Scale(4), ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersBottomRight);
 		}
 	}
+
 	inline void RenderTwoToneBackground(float flSize, ImU32 uTitle, ImU32 uBackground, ImU32 uBorder, float flInset = H::Draw.Scale(), bool bVertical = true, bool bTwoToneBorder = true)
 	{
 		ImVec2 vSize = GetWindowSize();
@@ -277,6 +301,7 @@ namespace ImGui
 		flInset += H::Draw.Scale(0.5f) - 0.5f - H::Draw.Scale();
 		pDrawList->AddRect({ vDrawPos.x + flInset, vDrawPos.y + flInset }, { vDrawPos.x - flInset + vSize.x, vDrawPos.y - flInset + vSize.y }, uBorder, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
 	}
+
 	inline void Divider(float flInset = H::Draw.Scale(), float flPrePadding = H::Draw.Scale(8), float flPostPadding = H::Draw.Scale(7), ImU32 uBorder = F::Render.Background2)
 	{
 		ImVec2 vSize = GetWindowSize();
@@ -716,6 +741,7 @@ namespace ImGui
 
 		return bReturn;
 	}
+
 	inline void EndSection()
 	{
 		uint32_t uHash = vStoredLabels.back();
@@ -1279,9 +1305,17 @@ namespace ImGui
 			{
 				if (!Disabled && IsItemHovered() && IsWindowHovered())
 					SetMouseCursor(ImGuiMouseCursor_TextInput);
+				
+				// Always draw underline, but highlight when active or hovered
+				ImColor tUnderlineColor = F::Render.Inactive;
 				if (mActiveMap[uHash2])
-					pDrawList->AddRectFilled({ vDrawPos.x + vOriginalPos2.x, vDrawPos.y + vOriginalPos2.y + H::Draw.Scale(14) }, { vDrawPos.x + vOriginalPos2.x + flWidth, vDrawPos.y + vOriginalPos2.y + H::Draw.Scale(15) }, F::Render.Active);
-				else if (IsItemClicked())
+					tUnderlineColor = F::Render.Active;
+				else if (IsItemHovered())
+					tUnderlineColor.Value.w *= 0.5f;
+				
+				pDrawList->AddRectFilled({ vDrawPos.x + vOriginalPos2.x, vDrawPos.y + vOriginalPos2.y + H::Draw.Scale(14) }, { vDrawPos.x + vOriginalPos2.x + flWidth, vDrawPos.y + vOriginalPos2.y + H::Draw.Scale(15) }, tUnderlineColor);
+				
+				if (IsItemClicked())
 				{
 					float* pVar = !pVar2 || GetMousePos().x - vDrawPos.x - vOriginalPos2.x < flWidth / 2 ? pVar1 : pVar2;
 					sInput = std::format("{}", *pVar); // would use to_string but i don't like its formatting
@@ -1432,425 +1466,326 @@ namespace ImGui
 		return FSlider(sLabel, pVar, nullptr, iMin, iMax, iStep, fmt, iFlags, pHovered);
 	}
 
-	inline bool FDropdown(const char* sLabel, int* pVar, std::vector<const char*> vEntries, std::vector<int> vValues = {}, int iFlags = FDropdownEnum::None, int iSizeOffset = 0, const char* sDefaultPreview = "None", bool* pHovered = nullptr, int* pModified = nullptr)
-	{
-		bool bReturn = false;
-
-		if (Transparent || Disabled)
-			PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
-
-		bool bTitle = sLabel[0] != '#';
-
-		if (vValues.empty())
-		{
-			int i = 0; for (auto& sEntry : vEntries)
-			{
-				if (FNV1A::Hash32(sEntry) == FNV1A::Hash32Const("##Divider"))
-					continue;
-
-				vValues.push_back(iFlags & FDropdownEnum::Multi ? 1 << i : i);
-				i++;
-			}
-		}
-
-		std::string sPreview = "";
-		if (!(iFlags & FDropdownEnum::Multi) || *pVar)
-		{
-			size_t i = 0; for (auto& iValue : vValues)
-			{
-				while (FNV1A::Hash32(vEntries[i]) == FNV1A::Hash32Const("##Divider"))
-					i++;
-
-				if (iFlags & FDropdownEnum::Multi && *pVar & iValue)
-					sPreview += std::format("{}, ", StripDoubleHash(vEntries[i]).c_str());
-				else if (!(iFlags & FDropdownEnum::Multi) && *pVar == iValue)
-					sPreview = std::format("{}##", StripDoubleHash(vEntries[i]).c_str());
-				i++;
-			}
-			if (sPreview.length() > 1)
-			{
-				sPreview.pop_back(); sPreview.pop_back();
-			}
-		}
-		if (sPreview.empty())
-			sPreview = sDefaultPreview;
-
-		ImVec2 vSize = { GetWindowWidth(), H::Draw.Scale(bTitle ? 40 : 24) };
-		if (iFlags & (FDropdownEnum::Left | FDropdownEnum::Right))
-			vSize.x = vSize.x / 2 - GetStyle().WindowPadding.x * 1.5f;
-		else
-			vSize.x -= GetStyle().WindowPadding.x * 2.f;
-		if (iFlags & FDropdownEnum::Right)
-			SameLine(vSize.x + GetStyle().WindowPadding.x * 2.f);
-		iSizeOffset = strstr(sLabel, "## Bind") ? 0 : H::Draw.Scale(iSizeOffset, Scale_Round);
-		vSize.x += iSizeOffset;
-
-		ImVec2 vOriginalPos = GetCursorPos();
-		DebugShift({ 0, GetStyle().WindowPadding.y });
-
-		if (Disabled)
-		{	// lol
-			Button("##", vSize);
-			SetCursorPos(vOriginalPos);
-			DebugShift({ 0, GetStyle().WindowPadding.y });
-		}
-
-		PushStyleVar(ImGuiStyleVar_FramePadding, { 0.f, H::Draw.Scale(bTitle ? 13.5f : 5.5f) });
-		PushItemWidth(vSize.x);
-
-		bool bActive = BeginCombo(std::format("##{}", sLabel).c_str(), "", ImGuiComboFlags_CustomPreview | ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_HeightLarge);
-		if (bActive)
-		{
-			DebugDummy({ 0, H::Draw.Scale(8) });
-
-			PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, H::Draw.Scale(19) });
-			int i = 0; for (auto& sEntry : vEntries)
-			{
-				if (FNV1A::Hash32(sEntry) == FNV1A::Hash32Const("##Divider"))
-				{
-					ImVec2 vDrawPos = GetDrawPos(); float flPosY = GetCursorPosY();
-					ImColor tInactive = F::Render.Inactive; tInactive.Value.w *= GetStyle().Alpha;
-					GetWindowDrawList()->AddRectFilled({ vDrawPos.x + H::Draw.Scale(17), vDrawPos.y + flPosY }, { vDrawPos.x + GetWindowWidth() - H::Draw.Scale(17), vDrawPos.y + flPosY + H::Draw.Scale(1) }, tInactive);
-					DebugDummy({});
-					continue;
-				}
-
-				std::string sStripped = StripDoubleHash(sEntry);
-				if (iFlags & FDropdownEnum::Multi)
-				{
-					bool bFlagActive = *pVar & vValues[i];
-
-					ImVec2 vOriginalPos2 = GetCursorPos();
-					if (FSelectable(std::format("##{}{}", sEntry, i).c_str(), nullptr, 0, bFlagActive, ImGuiSelectableFlags_DontClosePopups))
-					{
-						if (bFlagActive)
-							*pVar &= ~vValues[i];
-						else
-							*pVar |= vValues[i];
-						bReturn = true;
-					}
-
-					ImVec2 vOriginalPos3 = GetCursorPos();
-					SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(40), vOriginalPos2.y });
-					TextColored(bFlagActive ? F::Render.Active : F::Render.Inactive, sStripped.c_str());
-					SameLine(); DebugDummy({ H::Draw.Scale(!GetCurrentWindow()->ScrollbarY ? 16 : 9), 0 });
-
-					SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(15), vOriginalPos2.y - H::Draw.Scale(1) });
-					IconImage(bFlagActive ? ICON_MD_CHECK_BOX : ICON_MD_CHECK_BOX_OUTLINE_BLANK, bFlagActive ? F::Render.Accent : F::Render.Inactive);
-					SetCursorPos(vOriginalPos3);
-				}
-				else
-				{
-					ImVec2 vOriginalPos2 = GetCursorPos();
-					if (iFlags & FDropdownEnum::Modifiable)
-					{
-						SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(11), vOriginalPos2.y - H::Draw.Scale(5) });
-						if (IconButton(vValues[i] == -1 ? ICON_MD_ADD_CIRCLE : ICON_MD_REMOVE_CIRCLE, H::Draw.Scale(24), {}) && pModified)
-							*pModified = vValues[i];
-						SetCursorPos(vOriginalPos2);
-					}
-
-					if (FSelectable(std::format("##{}{}", sEntry, i).c_str(), nullptr, 0, *pVar == vValues[i]))
-						*pVar = vValues[i], bReturn = true;
-
-					ImVec2 vOriginalPos3 = GetCursorPos();
-					SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(iFlags & FDropdownEnum::Modifiable ? 40 : 18), vOriginalPos2.y });
-					TextColored(*pVar == vValues[i] ? F::Render.Active : F::Render.Inactive, sStripped.c_str());
-					SameLine(); DebugDummy({ H::Draw.Scale(!GetCurrentWindow()->ScrollbarY ? 16 : 9), 0 });
-
-					if (iFlags & FDropdownEnum::Modifiable) // do second image here so as to not cover
-					{
-						SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(15), vOriginalPos2.y - H::Draw.Scale(1) });
-						IconImage(vValues[i] == -1 ? ICON_MD_ADD_CIRCLE : ICON_MD_REMOVE_CIRCLE);
-					}
-					SetCursorPos(vOriginalPos3);
-				}
-				i++;
-			}
-			PopStyleVar();
-
-			SetCursorPosY(GetCursorPosY() - H::Draw.Scale(10)); DebugDummy({});
-
-			EndCombo();
-		}
-		if (!Disabled && IsItemHovered())
-			SetMouseCursor(ImGuiMouseCursor_Hand);
-		if (pHovered)
-			*pHovered = IsItemHovered();
-		if (BeginComboPreview())
-		{
-			ImVec2 vOriginalPos2 = GetCursorPos();
-
-			if (bTitle)
-			{
-				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y - H::Draw.Scale(6) });
-				PushFont(F::Render.FontSmall);
-				TextColored(F::Render.Inactive, TruncateText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(45)).c_str());
-				PopFont();
-
-				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y + H::Draw.Scale(8) });
-				TextUnformatted(TruncateText(sPreview, vSize.x - H::Draw.Scale(45)).c_str());
-
-				SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
-				IconImage(bActive ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
-			}
-			else
-			{
-				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y });
-				TextUnformatted(TruncateText(sPreview, vSize.x - H::Draw.Scale(45)).c_str());
-
-				SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
-				IconImage(bActive ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
-			}
-
-			EndComboPreview();
-		}
-
-		PopItemWidth();
-		PopStyleVar();
-
-		SetCursorPos(vOriginalPos);
-		AddRowSize(vOriginalPos, { vSize.x, vSize.y + GetStyle().WindowPadding.y });
-		DebugDummy({ vSize.x, GetRowSize(vSize.y + GetStyle().WindowPadding.y) });
-
-		if (Transparent || Disabled)
-			PopStyleVar();
-
-		return bReturn;
-	}
-
-	inline bool FSDropdown(const char* sLabel, std::string* pVar, std::vector<const char*> vEntries = {}, int iFlags = FDropdownEnum::None, int iSizeOffset = 0, bool* pHovered = nullptr)
+	// Dual-range slider for min/max values with two handles
+	inline bool FDualRangeSlider(const char* sLabel, float* pMinVar, float* pMaxVar, float flMin, float flMax, float flStep = 1.f, const char* fmt = "%g", int iFlags = FDualRangeSliderEnum::None, bool* pHovered = nullptr)
 	{
 		auto uHash = FNV1A::Hash32Const(sLabel);
-		bool bReturn = false;
+
+		// Compute minimum distance between handles as a small fraction of the range
+		float flMinDistance = std::max((flMax - flMin) * 0.01f, flStep);
+
+		ImDrawList* pDrawList = GetWindowDrawList();
+		float flOriginalMin = *pMinVar, flOriginalMax = *pMaxVar;
+
+		static std::unordered_map<uint32_t, std::pair<float, float>> mStaticVars = {};
+		if (!mActiveMap[uHash])
+			mStaticVars[uHash] = { flOriginalMin, flOriginalMax };
+		float& flSMin = mStaticVars[uHash].first, &flSMax = mStaticVars[uHash].second;
 
 		if (Transparent || Disabled)
 			PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
-		bool bTitle = sLabel[0] != '#';
+		ImVec2 vSize;
+		bool bFull = !(iFlags & (FDualRangeSliderEnum::Left | FDualRangeSliderEnum::Right));
 
-		ImVec2 vSize = { GetWindowWidth(), H::Draw.Scale(bTitle ? 40 : 24) };
-		if (iFlags & (FDropdownEnum::Left | FDropdownEnum::Right))
+		vSize.x = GetWindowWidth();
+		if (!bFull)
 			vSize.x = vSize.x / 2 - GetStyle().WindowPadding.x * 1.5f;
 		else
-			vSize.x -= GetStyle().WindowPadding.x * 2.f;
-		if (iFlags & FDropdownEnum::Right)
-			SameLine(vSize.x + GetStyle().WindowPadding.x * 2.f);
-		iSizeOffset = strstr(sLabel, "## Bind") ? 0 : H::Draw.Scale(iSizeOffset, Scale_Round);
-		vSize.x += iSizeOffset;
+			vSize.x -= GetStyle().WindowPadding.x * 2;
+		if (iFlags & FDualRangeSliderEnum::Right)
+			SameLine(vSize.x + GetStyle().WindowPadding.x * 2);
 
-		ImVec2 vOriginalPos = GetCursorPos();
-		DebugShift({ 0, GetStyle().WindowPadding.y });
+		ImVec2 vOriginalPos = GetCursorPos(), vDrawPos = GetDrawPos();
+		PushStyleColor(ImGuiCol_Text, F::Render.Inactive.Value);
 
-		if (Disabled)
-		{	// lol
-			Button("##", vSize);
-			SetCursorPos(vOriginalPos);
-			DebugShift({ 0, GetStyle().WindowPadding.y });
+		static std::unordered_map<uint32_t, float> mEntryWidth = {};
+		float& flEntryWidth = mEntryWidth[FNV1A::Hash32(sLabel)];
+#ifdef ALTERNATE_FULL_SLIDER
+		auto vWrapped = WrapText(StripDoubleHash(sLabel), bFull ? vSize.x / 2 - H::Draw.Scale(24) : vSize.x - flEntryWidth - H::Draw.Scale(20));
+#else
+		auto vWrapped = WrapText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(14) - flEntryWidth);
+#endif
+		int iWraps = std::min(int(vWrapped.size()), 2); // prevent too many wraps
+#ifdef ALTERNATE_FULL_SLIDER
+		vSize.y = H::Draw.Scale(H::Draw.Scale(bFull ? 6 : 14) + 18 * iWraps);
+#else
+		vSize.y = H::Draw.Scale(14 + 18 * iWraps);
+#endif
+
+		for (size_t i = 0; i < iWraps; i++)
+		{
+#ifdef ALTERNATE_FULL_SLIDER
+			SetCursorPos({ vOriginalPos.x + H::Draw.Scale(6), vOriginalPos.y + H::Draw.Scale((bFull ? 5 : 3) + 18 * i) });
+#else
+			SetCursorPos({ vOriginalPos.x + H::Draw.Scale(6), vOriginalPos.y + H::Draw.Scale(3 + 18 * i) });
+#endif
+			TextUnformatted(vWrapped[i].c_str());
 		}
 
-		PushStyleVar(ImGuiStyleVar_FramePadding, { 0.f, H::Draw.Scale(bTitle ? 13.5f : 5.5f) });
-		if (vEntries.empty())
+		// Text input fields for direct value entry
+#ifdef ALTERNATE_FULL_SLIDER
+		float flTextY = vOriginalPos.y + H::Draw.Scale(bFull ? -4 + 9 * iWraps : -15 + 18 * iWraps);
+#else
+		float flTextY = vOriginalPos.y + H::Draw.Scale(-15 + 18 * iWraps);
+#endif
 		{
-			PushStyleColor(ImGuiCol_PopupBg, {});
-			PushStyleVar(ImGuiStyleVar_WindowPadding, { GetStyle().WindowPadding.x, 0 });
-		}
-		PushItemWidth(vSize.x);
+			auto uHashMin = FNV1A::Hash32Const(std::format("{}## Min Text", sLabel).c_str());
+			auto uHashMax = FNV1A::Hash32Const(std::format("{}## Max Text", sLabel).c_str());
 
-		static std::string sPreview = "", sInput = "", sTab = "\n";
-		if (BeginCombo(std::format("##{}", sLabel).c_str(), "", ImGuiComboFlags_CustomPreview | ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_HeightLarge))
-		{
-			if (!mActiveMap[uHash])
-				sPreview = sInput = "";
-
-			mActiveMap[uHash] = true;
-
-			// this textinput is being used as a temporary measure to prevent the main window drawing over the popup
-			ImVec2 vOriginalPos2 = GetCursorPos();
-			SetCursorPos({ -1000, vEntries.empty() ? -100 : GetScrollY() }); // lol
-			if (!IsAnyItemActive())
-				SetKeyboardFocusHere();
-			bool bEnter = InputText("##FSDropdown", &sInput, ImGuiInputTextFlags_EnterReturnsTrue);
-			if (sInput != sTab)
-			{
-				sPreview = sInput;
-				sTab = "\n";
-			}
-			SetCursorPos(vOriginalPos2);
-
-			auto uPreviewHash = FNV1A::Hash32(sPreview.c_str());
-			std::deque<std::string> vValid = {};
-			{
-				std::string sSearch = sInput;
-				std::transform(sSearch.begin(), sSearch.end(), sSearch.begin(), ::tolower);
-				for (auto& sEntry : vEntries)
-				{
-					if (FNV1A::Hash32(sEntry) == FNV1A::Hash32Const("##Divider"))
-					{
-						vValid.push_back(sEntry);
-						continue;
-					}
-
-					std::string sEntryLower = sEntry;
-					std::transform(sEntryLower.begin(), sEntryLower.end(), sEntryLower.begin(), ::tolower);
-					if (sEntryLower.find(sSearch) != std::string::npos)
-						vValid.push_back(sEntry);
-				}
-			}
-
-			if (!vValid.empty() && FNV1A::Hash32(vValid.front().c_str()) == FNV1A::Hash32Const("##Divider"))
-				vValid.pop_front();
-			if (!vValid.empty() && FNV1A::Hash32(vValid.back().c_str()) == FNV1A::Hash32Const("##Divider"))
-				vValid.pop_back();
-			if (!vValid.empty())
-			{
-				if (U::KeyHandler.Pressed(VK_TAB))
-				{
-					int iIndex = -1;
-					for (int i = 0; i < vValid.size(); i++)
-					{
-						if (uPreviewHash == FNV1A::Hash32(vValid[i].c_str()))
-							iIndex = i;
-					}
-					if (iIndex == -1 && U::KeyHandler.Down(VK_SHIFT))
-						iIndex = 0;
-					while (true)
-					{
-						iIndex += !U::KeyHandler.Down(VK_SHIFT) ? 1 : -1;
-						if (iIndex < 0)
-							iIndex += int(vValid.size());
-						else if (iIndex >= vValid.size())
-							iIndex -= int(vValid.size());
-						if (FNV1A::Hash32(vValid[iIndex].c_str()) == FNV1A::Hash32Const("##Divider"))
-							continue;
-						sPreview = vValid[iIndex];
-						sTab = sInput;
-						break;
-					}
-				}
-
-				DebugDummy({ 0, H::Draw.Scale(8) });
-				PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, H::Draw.Scale(19) });
-
-				bool bDivider = false;
-				for (int i = 0; i < vValid.size(); i++)
-				{
-					auto& sEntry = vValid[i];
-					if (FNV1A::Hash32(sEntry.c_str()) == FNV1A::Hash32Const("##Divider"))
-					{
-						if (!bDivider)
-						{
-							ImVec2 vDrawPos = GetDrawPos(); float flPosY = GetCursorPosY();
-							ImColor tInactive = F::Render.Inactive; tInactive.Value.w *= GetStyle().Alpha;
-							GetWindowDrawList()->AddRectFilled({ vDrawPos.x + H::Draw.Scale(17), vDrawPos.y + flPosY }, { vDrawPos.x + GetWindowWidth() - H::Draw.Scale(17), vDrawPos.y + flPosY + H::Draw.Scale(1) }, tInactive);
-							DebugDummy({});
-						}
-						bDivider = true;
-						continue;
-					}
-					else
-						bDivider = false;
-
-					if (bEnter && !(iFlags & FSDropdownEnum::Custom))
-					{
-						*pVar = sEntry; bReturn = true;
-						CloseCurrentPopup(); break;
-					}
-
-					bool bActive = FNV1A::Hash32(pVar->c_str()) == FNV1A::Hash32(sEntry.c_str());
-					ImVec2 vOriginalPos3 = GetCursorPos();
-					if (FSelectable(std::format("##{}{}", sEntry, i).c_str(), nullptr, 0, bActive))
-						*pVar = sEntry, bReturn = true;
-
-					ImVec2 vOriginalPos4 = GetCursorPos();
-					SetCursorPos({ vOriginalPos3.x + H::Draw.Scale(18), vOriginalPos3.y });
-					TextColored(bActive ? F::Render.Active : F::Render.Inactive, sEntry.c_str());
-					SameLine(); DebugDummy({ H::Draw.Scale(!GetCurrentWindow()->ScrollbarY ? 16 : 9), 0 });
-					SetCursorPos(vOriginalPos4);
-				}
-
-				PopStyleVar();
-				SetCursorPosY(GetCursorPosY() - H::Draw.Scale(10)); DebugDummy({});
-			}
-
-			if ((bEnter || iFlags & FSDropdownEnum::AutoUpdate) && (iFlags & FSDropdownEnum::Custom || vEntries.empty()))
-				*pVar = sPreview; bReturn = true;
-			if (bEnter || U::KeyHandler.Down(VK_ESCAPE))
-				CloseCurrentPopup();
-
-			EndCombo();
-		}
-		else
-			mActiveMap[uHash] = false;
-		if (!Disabled && IsItemHovered())
-			SetMouseCursor(ImGuiMouseCursor_TextInput);
-		if (pHovered)
-			*pHovered = IsItemHovered();
-		if (BeginComboPreview())
-		{
-			ImVec2 vOriginalPos2 = GetCursorPos();
-
-			if (bTitle)
-			{
-				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y - H::Draw.Scale(5) });
-				PushFont(F::Render.FontSmall);
-				TextColored(F::Render.Inactive, TruncateText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(vEntries.empty() ? 24 : 45)).c_str());
-				PopFont();
-
-				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y + H::Draw.Scale(8) });
-				TextUnformatted(TruncateText(mActiveMap[uHash] ? sPreview : *pVar, vSize.x - H::Draw.Scale(vEntries.empty() ? 24 : 45)).c_str());
-
-				if (!vEntries.empty())
-				{
-					SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
-					IconImage(mActiveMap[uHash] ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
-				}
-
-				if (mActiveMap[uHash] || iFlags & FSDropdownEnum::Custom || vEntries.empty())
-				{
-					ImVec2 vDrawPos = GetDrawPos() + vOriginalPos2 + ImVec2(H::Draw.Scale(12), H::Draw.Scale(22));
-					vDrawPos.x = floorf(vDrawPos.x), vDrawPos.y = floorf(vDrawPos.y);
-					GetWindowDrawList()->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x - H::Draw.Scale(vEntries.empty() ? 25 : 45), vDrawPos.y + H::Draw.Scale(2) }, mActiveMap[uHash] ? F::Render.Active : F::Render.Inactive);
-				}
-			}
+			static std::string sMinText, sMaxText, sMinInput, sMaxInput;
+			if (!mActiveMap[uHashMin])
+				sMinText = FormatText(fmt, flSMin);
 			else
 			{
-				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y });
-				TextUnformatted(TruncateText(mActiveMap[uHash] ? sPreview : *pVar, vSize.x - H::Draw.Scale(vEntries.empty() ? 24 : 45)).c_str());
+				SetCursorPos({ -1000, flTextY });
+				SetKeyboardFocusHere();
+				InputText("##MinSliderText", &sMinInput, ImGuiInputTextFlags_CharsDecimal);
+				sMinText = sMinInput;
 
-				if (!vEntries.empty())
+				bool bEnter = U::KeyHandler.Pressed(VK_RETURN);
+				if (bEnter)
 				{
-					SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
-					IconImage(mActiveMap[uHash] ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
+					try
+					{
+						flSMin = sMinText.length() ? std::stof(sMinText) : 0.f;
+						flSMin = std::clamp(flSMin, flMin, flMax);
+						if (!(iFlags & FDualRangeSliderEnum::Precision))
+							flSMin = flSMin - fnmodf(flSMin - flStep / 2, flStep) + flStep / 2;
+						if (iFlags & FDualRangeSliderEnum::Clamp)
+							flSMin = std::clamp(flSMin, flMin, flMax);
+						else if (iFlags & FDualRangeSliderEnum::Min)
+							flSMin = std::max(flSMin, flMin);
+						else if (iFlags & FDualRangeSliderEnum::Max)
+							flSMin = std::min(flSMin, flMax);
+						// Cross-handle validation
+						flSMin = std::min(flSMin, flSMax - flMinDistance);
+						*pMinVar = flSMin;
+					}
+					catch (...) {}
 				}
+				if (bEnter || IsMouseClicked(ImGuiMouseButton_Left) || U::KeyHandler.Pressed(VK_ESCAPE))
+					mActiveMap[uHashMin] = false;
+			}
 
-				if (mActiveMap[uHash] || iFlags & FSDropdownEnum::Custom || vEntries.empty())
+			if (!mActiveMap[uHashMax])
+				sMaxText = FormatText(fmt, flSMax);
+			else
+			{
+				SetCursorPos({ -1000, flTextY });
+				SetKeyboardFocusHere();
+				InputText("##MaxSliderText", &sMaxInput, ImGuiInputTextFlags_CharsDecimal);
+				sMaxText = sMaxInput;
+
+				bool bEnter = U::KeyHandler.Pressed(VK_RETURN);
+				if (bEnter)
 				{
-					ImVec2 vDrawPos = GetDrawPos() + vOriginalPos2 + ImVec2(H::Draw.Scale(12), H::Draw.Scale(14));
-					vDrawPos.x = floorf(vDrawPos.x), vDrawPos.y = floorf(vDrawPos.y);
-					GetWindowDrawList()->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x - H::Draw.Scale(vEntries.empty() ? 25 : 45), vDrawPos.y + H::Draw.Scale(2) }, mActiveMap[uHash] ? F::Render.Active : F::Render.Inactive);
+					try
+					{
+						flSMax = sMaxText.length() ? std::stof(sMaxText) : 0.f;
+						flSMax = std::clamp(flSMax, flMin, flMax);
+						if (!(iFlags & FDualRangeSliderEnum::Precision))
+							flSMax = flSMax - fnmodf(flSMax - flStep / 2, flStep) + flStep / 2;
+						if (iFlags & FDualRangeSliderEnum::Clamp)
+							flSMax = std::clamp(flSMax, flMin, flMax);
+						else if (iFlags & FDualRangeSliderEnum::Min)
+							flSMax = std::max(flSMax, flMin);
+						else if (iFlags & FDualRangeSliderEnum::Max)
+							flSMax = std::min(flSMax, flMax);
+						// Cross-handle validation
+						flSMax = std::max(flSMax, flSMin + flMinDistance);
+						*pMaxVar = flSMax;
+					}
+					catch (...) {}
+				}
+				if (bEnter || IsMouseClicked(ImGuiMouseButton_Left) || U::KeyHandler.Pressed(VK_ESCAPE))
+					mActiveMap[uHashMax] = false;
+			}
+
+			float flMinWidth = FCalcTextSize(sMinText.c_str()).x;
+			float flMaxWidth = FCalcTextSize(sMaxText.c_str()).x;
+			float flTotalWidth = flMinWidth + flMaxWidth + H::Draw.Scale(20); // 20 for spacing
+
+			// Min value text
+#ifdef ALTERNATE_FULL_SLIDER
+			if (bFull)
+				SetCursorPos({ vOriginalPos.x + vSize.x - H::Draw.Scale(36), flTextY });
+			else
+				SetCursorPos({ vOriginalPos.x + vSize.x - flTotalWidth, flTextY });
+#else
+			SetCursorPos({ vOriginalPos.x + vSize.x - flTotalWidth, flTextY });
+#endif
+			ImVec2 vMinTextPos = GetCursorPos();
+			flEntryWidth = flTotalWidth;
+			TextUnformatted(sMinText.c_str());
+			if (!Disabled)
+			{
+				if (!Disabled && IsItemHovered() && IsWindowHovered())
+					SetMouseCursor(ImGuiMouseCursor_TextInput);
+				
+				// Always draw underline, but highlight when active or hovered
+				ImColor tUnderlineColor = F::Render.Inactive;
+				if (mActiveMap[uHashMin])
+					tUnderlineColor = F::Render.Active;
+				else if (IsItemHovered())
+					tUnderlineColor.Value.w *= 0.5f;
+				
+				pDrawList->AddRectFilled({ vDrawPos.x + vMinTextPos.x, vDrawPos.y + vMinTextPos.y + H::Draw.Scale(14) }, { vDrawPos.x + vMinTextPos.x + flMinWidth, vDrawPos.y + vMinTextPos.y + H::Draw.Scale(15) }, tUnderlineColor);
+				
+				if (IsItemClicked())
+				{
+					sMinInput = std::format("{}", flSMin);
+					mActiveMap[uHashMin] = true;
 				}
 			}
 
-			EndComboPreview();
+			// Max value text
+			SetCursorPos({ vOriginalPos.x + vSize.x - flMaxWidth - H::Draw.Scale(6), flTextY });
+			ImVec2 vMaxTextPos = GetCursorPos();
+			TextUnformatted(sMaxText.c_str());
+			if (!Disabled)
+			{
+				if (!Disabled && IsItemHovered() && IsWindowHovered())
+					SetMouseCursor(ImGuiMouseCursor_TextInput);
+				
+				// Always draw underline, but highlight when active or hovered
+				ImColor tUnderlineColor = F::Render.Inactive;
+				if (mActiveMap[uHashMax])
+					tUnderlineColor = F::Render.Active;
+				else if (IsItemHovered())
+					tUnderlineColor.Value.w *= 0.5f;
+				
+				pDrawList->AddRectFilled({ vDrawPos.x + vMaxTextPos.x, vDrawPos.y + vMaxTextPos.y + H::Draw.Scale(14) }, { vDrawPos.x + vMaxTextPos.x + flMaxWidth, vDrawPos.y + vMaxTextPos.y + H::Draw.Scale(15) }, tUnderlineColor);
+				
+				if (IsItemClicked())
+				{
+					sMaxInput = std::format("{}", flSMax);
+					mActiveMap[uHashMax] = true;
+				}
+			}
 		}
 
-		PopItemWidth();
-		if (vEntries.empty())
+		vDrawPos += vOriginalPos;
+#ifdef ALTERNATE_FULL_SLIDER
+		ImVec2 vMins = { vSize.x / 2 - H::Draw.Scale(10), vSize.y / 2 - H::Draw.Scale(1) }, vMaxs = { vSize.x - H::Draw.Scale(50), vSize.y / 2 + H::Draw.Scale(1) };
+		if (!bFull)
+			vMins = { H::Draw.Scale(6), vSize.y - H::Draw.Scale(8) }, vMaxs = { vSize.x - H::Draw.Scale(6), vSize.y - H::Draw.Scale(6) };
+#else
+		ImVec2 vMins = { H::Draw.Scale(6), vSize.y - H::Draw.Scale(8) }, vMaxs = { vSize.x - H::Draw.Scale(6), vSize.y - H::Draw.Scale(6) };
+#endif
+		ImColor tAccent = F::Render.Accent, tMuted = tAccent, tWashed = tAccent, tTransparent = tAccent;
 		{
-			PopStyleColor();
-			PopStyleVar();
+			float flA = GetStyle().Alpha;
+			tAccent.Value.w *= flA, tMuted.Value.w *= 0.8f * flA, tWashed.Value.w *= 0.4f * flA, tTransparent.Value.w *= 0.1f * flA;
 		}
-		PopStyleVar();
 
+		bool bWithin = IsWindowHovered() && IsMouseWithin(vDrawPos.x + vMins.x - H::Draw.Scale(6), vDrawPos.y + vMins.y - H::Draw.Scale(6), (vMaxs.x - vMins.x) + H::Draw.Scale(12), (vMaxs.y - vMins.y) + H::Draw.Scale(12));
+		if (!Disabled && bWithin)
+			SetMouseCursor(ImGuiMouseCursor_Hand);
+		ImVec2 vMouse = GetMousePos();
+		float flMousePerc = (vMouse.x - (vDrawPos.x + vMins.x)) / ((vDrawPos.x + vMaxs.x) - (vDrawPos.x + vMins.x)) + (flStep / 2) / (flMax - flMin);
+
+		// Calculate normalized positions
+		float flMinPerc = std::clamp((flSMin - flMin) / (flMax - flMin), 0.f, 1.f);
+		float flMaxPerc = std::clamp((flSMax - flMin) / (flMax - flMin), 0.f, 1.f);
+		float flMinPos = vMins.x + (vMaxs.x - vMins.x) * flMinPerc;
+		float flMaxPos = vMins.x + (vMaxs.x - vMins.x) * flMaxPerc;
+
+		// Draw stepped rectangles like FSlider
+		AddSteppedRect(vDrawPos, vMins, vMaxs, vMins, { flMinPos, vMaxs.y }, flMin, flMax, flStep, tWashed, tMuted, H::Draw.Scale(2));
+		AddSteppedRect(vDrawPos, vMins, vMaxs, { flMinPos, vMins.y }, { flMaxPos, vMaxs.y }, flMin, flMax, flStep, tAccent, tWashed, H::Draw.Scale(2));
+		AddSteppedRect(vDrawPos, vMins, vMaxs, { flMaxPos, vMins.y }, vMaxs, flMin, flMax, flStep, tWashed, tMuted, H::Draw.Scale(2));
+
+		// Draw handles as circles like FSlider
+		pDrawList->AddCircleFilled({ vDrawPos.x + flMinPos, vDrawPos.y + vMins.y + H::Draw.Scale(1) }, H::Draw.Scale(3), tAccent);
+		pDrawList->AddCircleFilled({ vDrawPos.x + flMaxPos, vDrawPos.y + vMins.y + H::Draw.Scale(1) }, H::Draw.Scale(3), tAccent);
+
+		if (!Disabled)
+		{
+			if (bWithin && !mActiveMap[uHash])
+			{
+				int iVar = fabsf(vMouse.x - (vDrawPos.x + flMinPos)) < fabsf(vMouse.x - (vDrawPos.x + flMaxPos)) ? 1 : 2;
+				if (IsMouseClicked(ImGuiMouseButton_Left))
+					mActiveMap[uHash] = iVar;
+				pDrawList->AddCircleFilled({ vDrawPos.x + (iVar == 1 ? flMinPos : flMaxPos), vDrawPos.y + vMins.y + H::Draw.Scale(1) }, H::Draw.Scale(12), tTransparent);
+			}
+			else if (mActiveMap[uHash] && IsMouseDown(ImGuiMouseButton_Left))
+			{
+				bool bVar1 = mActiveMap[uHash] == 1;
+				float& flVar = bVar1 ? flSMin : flSMax;
+				flVar = flMin + (flMax - flMin) * flMousePerc;
+				flVar = std::clamp(flVar - fnmodf(flVar, flStep), flMin, flMax);
+				
+				// Cross-handle validation
+				if (bVar1) // Min handle
+					flVar = std::min(flVar, flSMax - flMinDistance);
+				else // Max handle
+					flVar = std::max(flVar, flSMin + flMinDistance);
+				
+				pDrawList->AddCircleFilled({ vDrawPos.x + (bVar1 ? flMinPos : flMaxPos), vDrawPos.y + vMins.y + H::Draw.Scale(1) }, H::Draw.Scale(16), tTransparent);
+			}
+			else
+				mActiveMap[uHash] = false;
+
+			if (iFlags & FDualRangeSliderEnum::NoAutoUpdate ? !mActiveMap[uHash] : true)
+			{
+				*pMinVar = flSMin;
+				*pMaxVar = flSMax;
+			}
+		}
+
+		PopStyleColor();
+		SetCursorPos({ vOriginalPos.x + vMins.x - 6, vOriginalPos.y + vMins.y - 6 });
+		Button("##", { vMaxs.x - vMins.x + 12, 14 }); // don't drag it around
 		SetCursorPos(vOriginalPos);
-		AddRowSize(vOriginalPos, { vSize.x, vSize.y + GetStyle().WindowPadding.y });
-		DebugDummy({ vSize.x, GetRowSize(vSize.y + GetStyle().WindowPadding.y) });
+		AddRowSize(vOriginalPos, vSize);
+		DebugDummy({ vSize.x, GetRowSize(vSize.y) });
+
+		if (pHovered)
+			*pHovered = IsItemHovered();
 
 		if (Transparent || Disabled)
 			PopStyleVar();
 
-		return bReturn;
+		return *pMinVar != flOriginalMin || *pMaxVar != flOriginalMax;
+	}
+
+	inline bool FDualRangeSlider(const char* sLabel, FloatRange_t* pRange, float flMin, float flMax, float flStep = 1.f, const char* fmt = "%g - %g", int iFlags = FDualRangeSliderEnum::None, bool* pHovered = nullptr)
+	{
+		return FDualRangeSlider(sLabel, &pRange->Min, &pRange->Max, flMin, flMax, flStep, fmt, iFlags, pHovered);
+	}
+
+	// Integer pointer version
+	inline bool FDualRangeSlider(const char* sLabel, int* pMinVar, int* pMaxVar, int iMin, int iMax, int iStep = 1, const char* fmt = "%i - %i", int iFlags = FDualRangeSliderEnum::None, bool* pHovered = nullptr)
+	{
+		// Convert to float for internal processing
+		float flMin = static_cast<float>(iMin);
+		float flMax = static_cast<float>(iMax);
+		float flStep = static_cast<float>(iStep);
+		float flMinVal = static_cast<float>(*pMinVar);
+		float flMaxVal = static_cast<float>(*pMaxVar);
+
+		// Convert format specifiers
+		std::string sFmt = fmt;
+		size_t pos = sFmt.find("%i");
+		while (pos != std::string::npos) {
+			sFmt.replace(pos, 2, "%g");
+			pos = sFmt.find("%i", pos + 2);
+		}
+
+		bool bResult = FDualRangeSlider(sLabel, &flMinVal, &flMaxVal, flMin, flMax, flStep, sFmt.c_str(), iFlags, pHovered);
+		
+		// Convert back to integers
+		*pMinVar = static_cast<int>(flMinVal);
+		*pMaxVar = static_cast<int>(flMaxVal);
+		
+		return bResult;
+	}
+
+	// IntRange_t version that uses the integer pointer version
+	inline bool FDualRangeSlider(const char* sLabel, IntRange_t* pRange, int iMin, int iMax, int iStep = 1, const char* fmt = "%i - %i", int iFlags = FDualRangeSliderEnum::None, bool* pHovered = nullptr)
+	{
+		return FDualRangeSlider(sLabel, &pRange->Min, &pRange->Max, iMin, iMax, iStep, fmt, iFlags, pHovered);
 	}
 
 	inline bool ColorPicker(const char* sLabel, Color_t* pColor, bool bTooltip = true, ImVec2 vSize = { H::Draw.Scale(12), H::Draw.Scale(12) })
@@ -2271,6 +2206,240 @@ namespace ImGui
 		}
 
 		PopItemWidth();
+		PopStyleVar();
+
+		SetCursorPos(vOriginalPos);
+		AddRowSize(vOriginalPos, { vSize.x, vSize.y + GetStyle().WindowPadding.y });
+		DebugDummy({ vSize.x, GetRowSize(vSize.y + GetStyle().WindowPadding.y) });
+
+		if (Transparent || Disabled)
+			PopStyleVar();
+
+		return bReturn;
+	}
+
+	inline bool FSDropdown(const char* sLabel, std::string* pVar, std::vector<const char*> vEntries = {}, int iFlags = FDropdownEnum::None, int iSizeOffset = 0, bool* pHovered = nullptr)
+	{
+		auto uHash = FNV1A::Hash32Const(sLabel);
+		bool bReturn = false;
+
+		if (Transparent || Disabled)
+			PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+
+		bool bTitle = sLabel[0] != '#';
+
+		ImVec2 vSize = { GetWindowWidth(), H::Draw.Scale(bTitle ? 40 : 24) };
+		if (iFlags & (FDropdownEnum::Left | FDropdownEnum::Right))
+			vSize.x = vSize.x / 2 - GetStyle().WindowPadding.x * 1.5f;
+		else
+			vSize.x -= GetStyle().WindowPadding.x * 2.f;
+		if (iFlags & FDropdownEnum::Right)
+			SameLine(vSize.x + GetStyle().WindowPadding.x * 2.f);
+		iSizeOffset = strstr(sLabel, "## Bind") ? 0 : H::Draw.Scale(iSizeOffset, Scale_Round);
+		vSize.x += iSizeOffset;
+
+		ImVec2 vOriginalPos = GetCursorPos();
+		DebugShift({ 0, GetStyle().WindowPadding.y });
+
+		if (Disabled)
+		{	// lol
+			Button("##", vSize);
+			SetCursorPos(vOriginalPos);
+			DebugShift({ 0, GetStyle().WindowPadding.y });
+		}
+
+		PushStyleVar(ImGuiStyleVar_FramePadding, { 0.f, H::Draw.Scale(bTitle ? 13.5f : 5.5f) });
+		if (vEntries.empty())
+		{
+			PushStyleColor(ImGuiCol_PopupBg, {});
+			PushStyleVar(ImGuiStyleVar_WindowPadding, { GetStyle().WindowPadding.x, 0 });
+		}
+		PushItemWidth(vSize.x);
+
+		static std::string sPreview = "", sInput = "", sTab = "\n";
+		if (BeginCombo(std::format("##{}", sLabel).c_str(), "", ImGuiComboFlags_CustomPreview | ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_HeightLarge))
+		{
+			if (!mActiveMap[uHash])
+				sPreview = sInput = "";
+
+			mActiveMap[uHash] = true;
+
+			// this textinput is being used as a temporary measure to prevent the main window drawing over the popup
+			ImVec2 vOriginalPos2 = GetCursorPos();
+			SetCursorPos({ -1000, vEntries.empty() ? -100 : GetScrollY() }); // lol
+			if (!IsAnyItemActive())
+				SetKeyboardFocusHere();
+			bool bEnter = InputText("##FSDropdown", &sInput, ImGuiInputTextFlags_EnterReturnsTrue);
+			if (sInput != sTab)
+			{
+				sPreview = sInput;
+				sTab = "\n";
+			}
+			SetCursorPos(vOriginalPos2);
+
+			auto uPreviewHash = FNV1A::Hash32(sPreview.c_str());
+			std::deque<std::string> vValid = {};
+			{
+				std::string sSearch = sInput;
+				std::transform(sSearch.begin(), sSearch.end(), sSearch.begin(), ::tolower);
+				for (auto& sEntry : vEntries)
+				{
+					if (FNV1A::Hash32(sEntry) == FNV1A::Hash32Const("##Divider"))
+					{
+						vValid.push_back(sEntry);
+						continue;
+					}
+
+					std::string sEntryLower = sEntry;
+					std::transform(sEntryLower.begin(), sEntryLower.end(), sEntryLower.begin(), ::tolower);
+					if (sEntryLower.find(sSearch) != std::string::npos)
+						vValid.push_back(sEntry);
+				}
+			}
+
+			if (!vValid.empty() && FNV1A::Hash32(vValid.front().c_str()) == FNV1A::Hash32Const("##Divider"))
+				vValid.pop_front();
+			if (!vValid.empty() && FNV1A::Hash32(vValid.back().c_str()) == FNV1A::Hash32Const("##Divider"))
+				vValid.pop_back();
+			if (!vValid.empty())
+			{
+				if (U::KeyHandler.Pressed(VK_TAB))
+				{
+					int iIndex = -1;
+					for (int i = 0; i < vValid.size(); i++)
+					{
+						if (uPreviewHash == FNV1A::Hash32(vValid[i].c_str()))
+							iIndex = i;
+					}
+					if (iIndex == -1 && U::KeyHandler.Down(VK_SHIFT))
+						iIndex = 0;
+					while (true)
+					{
+						iIndex += !U::KeyHandler.Down(VK_SHIFT) ? 1 : -1;
+						if (iIndex < 0)
+							iIndex += int(vValid.size());
+						else if (iIndex >= vValid.size())
+							iIndex -= int(vValid.size());
+						if (FNV1A::Hash32(vValid[iIndex].c_str()) == FNV1A::Hash32Const("##Divider"))
+							continue;
+						sPreview = vValid[iIndex];
+						sTab = sInput;
+						break;
+					}
+				}
+
+				DebugDummy({ 0, H::Draw.Scale(8) });
+				PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, H::Draw.Scale(19) });
+
+				bool bDivider = false;
+				for (int i = 0; i < vValid.size(); i++)
+				{
+					auto& sEntry = vValid[i];
+					if (FNV1A::Hash32(sEntry.c_str()) == FNV1A::Hash32Const("##Divider"))
+					{
+						if (!bDivider)
+						{
+							ImVec2 vDrawPos = GetDrawPos(); float flPosY = GetCursorPosY();
+							ImColor tInactive = F::Render.Inactive; tInactive.Value.w *= GetStyle().Alpha;
+							GetWindowDrawList()->AddRectFilled({ vDrawPos.x + H::Draw.Scale(17), vDrawPos.y + flPosY }, { vDrawPos.x + GetWindowWidth() - H::Draw.Scale(17), vDrawPos.y + flPosY + H::Draw.Scale(1) }, tInactive);
+							DebugDummy({});
+						}
+						bDivider = true;
+						continue;
+					}
+					else
+						bDivider = false;
+
+					if (bEnter && !(iFlags & FSDropdownEnum::Custom))
+					{
+						*pVar = sEntry; bReturn = true;
+						CloseCurrentPopup(); break;
+					}
+
+					bool bActive = FNV1A::Hash32(pVar->c_str()) == FNV1A::Hash32(sEntry.c_str());
+					ImVec2 vOriginalPos3 = GetCursorPos();
+					if (FSelectable(std::format("##{}{}", sEntry, i).c_str(), nullptr, 0, bActive))
+						*pVar = sEntry, bReturn = true;
+
+					ImVec2 vOriginalPos4 = GetCursorPos();
+					SetCursorPos({ vOriginalPos3.x + H::Draw.Scale(18), vOriginalPos3.y });
+					TextColored(bActive ? F::Render.Active : F::Render.Inactive, sEntry.c_str());
+					SameLine(); DebugDummy({ H::Draw.Scale(!GetCurrentWindow()->ScrollbarY ? 16 : 9), 0 });
+					SetCursorPos(vOriginalPos4);
+				}
+
+				PopStyleVar();
+				SetCursorPosY(GetCursorPosY() - H::Draw.Scale(10)); DebugDummy({});
+			}
+
+			if ((bEnter || iFlags & FSDropdownEnum::AutoUpdate) && (iFlags & FSDropdownEnum::Custom || vEntries.empty()))
+				*pVar = sPreview; bReturn = true;
+			if (bEnter || U::KeyHandler.Down(VK_ESCAPE))
+				CloseCurrentPopup();
+
+			EndCombo();
+		}
+		else
+			mActiveMap[uHash] = false;
+		if (!Disabled && IsItemHovered())
+			SetMouseCursor(ImGuiMouseCursor_TextInput);
+		if (pHovered)
+			*pHovered = IsItemHovered();
+		if (BeginComboPreview())
+		{
+			ImVec2 vOriginalPos2 = GetCursorPos();
+
+			if (bTitle)
+			{
+				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y - H::Draw.Scale(5) });
+				PushFont(F::Render.FontSmall);
+				TextColored(F::Render.Inactive, TruncateText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(vEntries.empty() ? 24 : 45)).c_str());
+				PopFont();
+
+				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y + H::Draw.Scale(8) });
+				TextUnformatted(TruncateText(mActiveMap[uHash] ? sPreview : *pVar, vSize.x - H::Draw.Scale(vEntries.empty() ? 24 : 45)).c_str());
+
+				if (!vEntries.empty())
+				{
+					SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
+					IconImage(mActiveMap[uHash] ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
+				}
+
+				if (mActiveMap[uHash] || iFlags & FSDropdownEnum::Custom || vEntries.empty())
+				{
+					ImVec2 vDrawPos = GetDrawPos() + vOriginalPos2 + ImVec2(H::Draw.Scale(12), H::Draw.Scale(22));
+					vDrawPos.x = floorf(vDrawPos.x), vDrawPos.y = floorf(vDrawPos.y);
+					GetWindowDrawList()->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x - H::Draw.Scale(vEntries.empty() ? 25 : 45), vDrawPos.y + H::Draw.Scale(2) }, mActiveMap[uHash] ? F::Render.Active : F::Render.Inactive);
+				}
+			}
+			else
+			{
+				SetCursorPos({ vOriginalPos2.x + H::Draw.Scale(12), vOriginalPos2.y });
+				TextUnformatted(TruncateText(mActiveMap[uHash] ? sPreview : *pVar, vSize.x - H::Draw.Scale(vEntries.empty() ? 24 : 45)).c_str());
+
+				if (!vEntries.empty())
+				{
+					SetCursorPos({ vOriginalPos2.x + vSize.x - H::Draw.Scale(24), vOriginalPos2.y - H::Draw.Scale(1) });
+					IconImage(mActiveMap[uHash] ? ICON_MD_KEYBOARD_ARROW_UP : ICON_MD_KEYBOARD_ARROW_DOWN);
+				}
+
+				if (mActiveMap[uHash] || iFlags & FSDropdownEnum::Custom || vEntries.empty())
+				{
+					ImVec2 vDrawPos = GetDrawPos() + vOriginalPos2 + ImVec2(H::Draw.Scale(12), H::Draw.Scale(14));
+					vDrawPos.x = floorf(vDrawPos.x), vDrawPos.y = floorf(vDrawPos.y);
+					GetWindowDrawList()->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x - H::Draw.Scale(vEntries.empty() ? 25 : 45), vDrawPos.y + H::Draw.Scale(2) }, mActiveMap[uHash] ? F::Render.Active : F::Render.Inactive);
+				}
+			}
+
+			EndComboPreview();
+		}
+
+		PopItemWidth();
+		if (vEntries.empty())
+		{
+			PopStyleColor();
+			PopStyleVar();
+		}
 		PopStyleVar();
 
 		SetCursorPos(vOriginalPos);
@@ -2906,13 +3075,14 @@ namespace ImGui
 	WRAPPER(FSlider, IntRange_t, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val.Min, &val.Max, var.m_unMin.i, var.m_unMax.i, var.m_unStep.i, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
 	WRAPPER(FSlider, float, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val, var.m_unMin.f, var.m_unMax.f, var.m_unStep.f, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
 	WRAPPER(FSlider, int, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val, var.m_unMin.i, var.m_unMax.i, var.m_unStep.i, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
+	WRAPPER(FDualRangeSlider, FloatRange_t, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val.Min, &val.Max, var.m_unMin.f, var.m_unMax.f, var.m_unStep.f, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
+	WRAPPER(FDualRangeSlider, IntRange_t, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val.Min, &val.Max, var.m_unMin.i, var.m_unMax.i, var.m_unStep.i, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
 	WRAPPER(FDropdown, int, VA_LIST(int iFlags = 0, int iSizeOffset = 0), VA_LIST(&val, var.m_vValues, {}, iFlags, iSizeOffset, var.m_sExtra ? var.m_sExtra : "None"))
 	WRAPPER(FDropdown, int, VA_LIST(std::vector<const char*> vEntries, std::vector<int> vValues = {}, int iFlags = 0, int iSizeOffset = 0), VA_LIST(&val, vEntries, vValues, iFlags, iSizeOffset, var.m_sExtra ? var.m_sExtra : "None"))
 	WRAPPER(FSDropdown, std::string, VA_LIST(int iFlags = 0, int iSizeOffset = 0), VA_LIST(&val, var.m_vValues, iFlags, iSizeOffset))
 	WRAPPER(FMDropdown, VA_LIST(std::vector<std::pair<std::string, Color_t>>), VA_LIST(int iFlags = 0, int iSizeOffset = 0), VA_LIST(&val, iFlags, iSizeOffset))
 	WRAPPER(FColorPicker, Color_t, VA_LIST(int iFlags = 0, ImVec2 vOffset = {}, ImVec2 vSize = { H::Draw.Scale(12), H::Draw.Scale(12) }, ImVec2 vIconOffset = {}), VA_LIST(&val, iFlags, vOffset, vSize, vIconOffset))
 	WRAPPER(FColorPicker, Gradient_t, VA_LIST(bool bStart = true, int iFlags = 0, ImVec2 vOffset = {}, ImVec2 vSize = { H::Draw.Scale(12), H::Draw.Scale(12) }, ImVec2 vIconOffset = {}), VA_LIST(bStart ? &val.StartColor : &val.EndColor, iFlags, vOffset, vSize, vIconOffset))
-	
 	WRAPPER(FColorPickerIconButton, Color_t,
 		VA_LIST(int iFlags = 0, float flButtonSize = H::Draw.Scale(24), ImVec4 tColor = {1,1,1,-1}),
 		VA_LIST(&val, iFlags, flButtonSize, tColor))
