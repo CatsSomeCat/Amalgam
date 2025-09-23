@@ -1216,7 +1216,7 @@
     <ClInclude Include="src\Features\Aimbot\AutoRocketJump\AutoRocketJump.h" />
     <ClInclude Include="src\Features\Aimbot\AutoHeal\AutoHeal.h" />
     <ClInclude Include="src\Features\Output\Output.h" />
-    <ClCompile Include="src\Features\Misc\AutoJoin\AutoJoin.h" />
+    <ClInclude Include="src\Features\Misc\AutoJoin\AutoJoin.h" />
     <ClInclude Include="src\Features\Misc\AutoQueue\AutoQueue.h" />
     <ClInclude Include="src\Features\Backtrack\Backtrack.h" />
     <ClInclude Include="src\Features\CheaterDetection\CheaterDetection.h" />
