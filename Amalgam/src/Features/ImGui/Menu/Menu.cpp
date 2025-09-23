@@ -630,11 +630,11 @@ void CMenu::MenuVisuals(int iTab)
 			/* Column 1 */
 			TableNextColumn();
 			{
-				if (Section("Color", 8))
-				{
-					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
-					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
-				} EndSection();
+				// if (Section("Color", 8))
+				// {
+				// 	FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
+				// 	FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
+				// } EndSection();
 				if (Section("Targets"))
 				{
 					FDropdown("Targets", &tGroup.m_iTargets, { "Players", "Buildings", "Projectiles", "Ragdolls", "Objective", "NPCs", "Health", "Ammo", "Money", "Powerups", "Spellbook", "Bombs", "Gargoyle", "##Divider", "Fake angle", "Viewmodel weapon", "Viewmodel hands" }, {}, FDropdownEnum::Multi);
@@ -1056,7 +1056,7 @@ void CMenu::MenuMisc(int iTab)
 				}
 				if (Section("Automation"))
 				{
-					FDropdown(Vars::Misc::Automation::AntiBackstab); // pitch/fake _might_ slip up some auto backstabs
+					FDropdown(Vars::Misc::Automation::AntiBackstab, FDropdownEnum::Left); // pitch/fake _might_ slip up some auto backstabs
 					FDropdown(Vars::Misc::Automation::AutoJoin, { "Off", "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, { 0,1,3,7,4,6,9,5,2,8 }, FDropdownEnum::Right);
 					FToggle(Vars::Misc::Automation::AntiAFK, FToggleEnum::Left);
 					FToggle(Vars::Misc::Automation::AntiAutobalance, FToggleEnum::Right);
