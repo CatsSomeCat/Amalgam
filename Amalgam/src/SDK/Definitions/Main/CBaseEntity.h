@@ -290,10 +290,13 @@ public:
 		return vOut;
 	}
 
+	int GetIntermediateDataSize();
 	Vec3 GetSize();
 	Vec3 GetOffset();
 	Vec3 GetCenter();
 	Vec3 GetRenderCenter();
 	int IsInValidTeam();
 	int SolidMask();
+	int GetHitboxToBase(int nHitbox);
+	int GetBaseToHitbox(int nHitbox);
 };

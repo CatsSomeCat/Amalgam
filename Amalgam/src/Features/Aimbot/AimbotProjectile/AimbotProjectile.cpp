@@ -3,6 +3,7 @@
 #include "../Aimbot.h"
 #include "../../Simulation/MovementSimulation/MovementSimulation.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
+#include "../../EnginePrediction/EnginePrediction.h"
 #include "../../Ticks/Ticks.h"
 #include "../../Visuals/Visuals.h"
 #include "../AutoAirblast/AutoAirblast.h"
@@ -1185,8 +1186,10 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 	}
 
 	bool bDidHit = false, bPrimeTime = false;
-	const Vec3 vOriginal = tTarget.m_pEntity->GetAbsOrigin();
+	const RestoreInfo_t tOriginal = { tTarget.m_pEntity->GetAbsOrigin(), tTarget.m_pEntity->m_vecMins(), tTarget.m_pEntity->m_vecMaxs() };
 	tTarget.m_pEntity->SetAbsOrigin(tTarget.m_vPos);
+	tTarget.m_pEntity->m_vecMins() = { -24, -24, tTarget.m_pEntity->m_vecMins().z };
+	tTarget.m_pEntity->m_vecMaxs() = { 24, 24, tTarget.m_pEntity->m_vecMaxs().z };
 	for (int n = 1; n <= iSimTime; n++)
 	{
 		Vec3 vOld = F::ProjSim.GetOrigin();
@@ -1305,7 +1308,7 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 					if (!aBones)
 						break;
 
-					Vec3 vOffset = vOriginal - tTarget.m_vPos;
+					Vec3 vOffset = tOriginal.m_vOrigin - tTarget.m_vPos;
 					Vec3 vPos = trace.endpos + F::ProjSim.GetVelocity().Normalized() * 16 + vOffset;
 
 					float flClosest = 0.f; int iClosest = -1;
@@ -1344,7 +1347,9 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 				break;
 		}
 	}
-	tTarget.m_pEntity->SetAbsOrigin(vOriginal);
+	tTarget.m_pEntity->SetAbsOrigin(tOriginal.m_vOrigin);
+	tTarget.m_pEntity->m_vecMins() = tOriginal.m_vMins;
+	tTarget.m_pEntity->m_vecMaxs() = tOriginal.m_vMaxs;
 
 	if (bDidHit && pProjectilePath)
 	{
@@ -1365,7 +1370,7 @@ int CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBas
 		|| !F::ProjSim.Initialize(tProjInfo, false))
 		return false;
 
-	PlayerStorage tStorage;
+	MoveStorage tStorage;
 	F::MoveSim.Initialize(tTarget.m_pEntity, tStorage);
 	tTarget.m_vPos = tTarget.m_pEntity->m_vecOrigin();
 
@@ -1623,11 +1628,11 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 // assume angle calculated outside with other overload
 void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 {
-	bool bDoubleTap = F::Ticks.m_bDoubletap || F::Ticks.GetTicks(H::Entities.GetWeapon()) || F::Ticks.m_bSpeedhack;
+	bool bUnsure = F::Ticks.IsTimingUnsure() || F::Ticks.GetTicks(H::Entities.GetWeapon());
 	switch (iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
-		if (G::Attacking != 1 && !bDoubleTap)
+		if (G::Attacking != 1 && !bUnsure)
 			break;
 		[[fallthrough]];
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
@@ -1637,7 +1642,7 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Silent:
 		if (auto pWeapon = H::Entities.GetWeapon();
-			G::Attacking == 1 || bDoubleTap || pWeapon && pWeapon->GetWeaponID() == TF_WEAPON_FLAMETHROWER)
+			G::Attacking == 1 || bUnsure || pWeapon && pWeapon->GetWeaponID() == TF_WEAPON_FLAMETHROWER)
 		{
 			SDK::FixMovement(pCmd, vAngle);
 			pCmd->viewangles = vAngle;
@@ -1647,6 +1652,7 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	case Vars::Aimbot::General::AimTypeEnum::Locking:
 		SDK::FixMovement(pCmd, vAngle);
 		pCmd->viewangles = vAngle;
+		G::SilentAngles = true;
 	}
 }
 
@@ -2049,7 +2055,7 @@ bool CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBa
 	if (!F::ProjSim.Initialize(tProjInfo, false, true))
 		return false;
 
-	PlayerStorage tStorage;
+	MoveStorage tStorage;
 	F::MoveSim.Initialize(tTarget.m_pEntity, tStorage);
 	tTarget.m_vPos = tTarget.m_pEntity->m_vecOrigin();
 

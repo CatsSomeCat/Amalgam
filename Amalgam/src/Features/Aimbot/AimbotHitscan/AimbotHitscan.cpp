@@ -231,36 +231,14 @@ int CAimbotHitscan::GetHitboxPriority(int nHitbox, CTFPlayer* pLocal, CTFWeaponB
 	int iMiscPriority = bHeadOnly ? -1 : 2;
 	int iLimbPriority = bHeadOnly ? -1 : 3;
 
-	switch (H::Entities.GetModel(pTarget->entindex()))
+	switch (pTarget->GetHitboxToBase(nHitbox))
 	{
-	case FNV1A::Hash32Const("models/vsh/player/saxton_hale.mdl"):
-	case FNV1A::Hash32Const("models/vsh/player/hell_hale.mdl"):
-	case FNV1A::Hash32Const("models/vsh/player/santa_hale.mdl"):
-	{
-		switch (nHitbox)
-		{
-		case HITBOX_SAXTON_HEAD: return iHeadPriority;
-		case HITBOX_SAXTON_BODY:
-		case HITBOX_SAXTON_THORAX:
-		case HITBOX_SAXTON_CHEST:
-		case HITBOX_SAXTON_UPPER_CHEST: return iBodyPriority;
-		case HITBOX_SAXTON_NECK:
-		case HITBOX_SAXTON_PELVIS: return iMiscPriority;
-		}
-		break;
-	}
-	default:
-	{
-		switch (nHitbox)
-		{
-		case HITBOX_HEAD: return iHeadPriority;
-		case HITBOX_BODY:
-		case HITBOX_THORAX:
-		case HITBOX_CHEST:
-		case HITBOX_UPPER_CHEST: return iBodyPriority;
-		case HITBOX_PELVIS: return iMiscPriority;
-		}
-	}
+	case HITBOX_HEAD: return iHeadPriority;
+	case HITBOX_SPINE0:
+	case HITBOX_SPINE1:
+	case HITBOX_SPINE2:
+	case HITBOX_SPINE3: return iBodyPriority;
+	case HITBOX_PELVIS: return iMiscPriority;
 	}
 
 	return iLimbPriority;
@@ -327,7 +305,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			tTarget.m_vPos = tTarget.m_pEntity->m_vecOrigin();
 
 			// not lag compensated (i assume) so run movesim based on ping
-			PlayerStorage tStorage;
+			MoveStorage tStorage;
 			F::MoveSim.Initialize(tTarget.m_pEntity, tStorage);
 			if (!tStorage.m_bFailed)
 			{
@@ -685,11 +663,11 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 // assume angle calculated outside with other overload
 void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 {
-	bool bDoubleTap = F::Ticks.m_bDoubletap || F::Ticks.GetTicks(H::Entities.GetWeapon()) || F::Ticks.m_bSpeedhack;
+	bool bUnsure = F::Ticks.IsTimingUnsure() || F::Ticks.GetTicks(H::Entities.GetWeapon());
 	switch (iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
-		if (G::Attacking != 1 && !bDoubleTap)
+		if (G::Attacking != 1 && !bUnsure)
 			break;
 		[[fallthrough]];
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
@@ -698,7 +676,7 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 		I::EngineClient->SetViewAngles(vAngle);
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Silent:
-		if (G::Attacking == 1 || bDoubleTap)
+		if (G::Attacking == 1 || bUnsure)
 		{
 			SDK::FixMovement(pCmd, vAngle);
 			pCmd->viewangles = vAngle;
@@ -708,6 +686,7 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	case Vars::Aimbot::General::AimTypeEnum::Locking:
 		SDK::FixMovement(pCmd, vAngle);
 		pCmd->viewangles = vAngle;
+		G::SilentAngles = true;
 	}
 }
 
