@@ -215,7 +215,7 @@ void CMisc::InstantRespawnMVM(CTFPlayer* pLocal)
 		return;
 
 	KeyValues* kv = new KeyValues("MVM_Revive_Response");
-	kv->SetInt("accepted", 1);
+	kv->SetBool("accepted", true);
 	I::EngineClient->ServerCmdKeyValues(kv);
 }
 
@@ -430,7 +430,7 @@ int CMisc::AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket)
 		return 0;
 
 	std::vector<std::pair<Vec3, CBaseEntity*>> vTargets = {};
-	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ENEMIES))
+	for (auto pEntity : H::Entities.GetGroup(EntityEnum::PlayerEnemy))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
 		if (!pPlayer->IsAlive() || pPlayer->IsAGhost() || pPlayer->InCond(TF_COND_STEALTHED))

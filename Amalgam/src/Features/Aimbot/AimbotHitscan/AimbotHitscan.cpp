@@ -15,16 +15,16 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
 
 	{
-		auto eGroupType = EGroupType::GROUP_INVALID;
+		auto eGroupType = EntityEnum::Invalid;
 		if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Players)
 		{
-			eGroupType = !F::AimbotGlobal.FriendlyFire() || Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Team ? EGroupType::PLAYERS_ENEMIES : EGroupType::PLAYERS_ALL;
+			eGroupType = !F::AimbotGlobal.FriendlyFire() || Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Team ? EntityEnum::PlayerEnemy : EntityEnum::PlayerAll;
 			if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::ExtinguishTeam &&
 				!F::AimbotGlobal.FriendlyFire() && SDK::AttribHookValue(0, "jarate_duration", pWeapon) > 0)
-				eGroupType = EGroupType::PLAYERS_ALL;
+				eGroupType = EntityEnum::PlayerAll;
 		}
 		if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
-			eGroupType = Vars::Aimbot::Healing::AutoHeal.Value ? EGroupType::PLAYERS_TEAMMATES : EGroupType::GROUP_INVALID;
+			eGroupType = Vars::Aimbot::Healing::AutoHeal.Value ? EntityEnum::PlayerTeam : EntityEnum::Invalid;
 		bool bHeal = pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN;
 
 		for (auto pEntity : H::Entities.GetGroup(eGroupType))
@@ -78,7 +78,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Building)
 	{
-		for (auto pEntity : H::Entities.GetGroup(EGroupType::BUILDINGS_ENEMIES))
+		for (auto pEntity : H::Entities.GetGroup(EntityEnum::BuildingEnemy))
 		{
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -96,7 +96,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Stickies)
 	{
-		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
+		for (auto pEntity : H::Entities.GetGroup(EntityEnum::WorldProjectile))
 		{
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -114,7 +114,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::NPCs)
 	{
-		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_NPC))
+		for (auto pEntity : H::Entities.GetGroup(EntityEnum::WorldNPC))
 		{
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -132,7 +132,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Bombs)
 	{
-		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_BOMBS))
+		for (auto pEntity : H::Entities.GetGroup(EntityEnum::WorldBomb))
 		{
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
@@ -275,10 +275,17 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 		vRecords = { &F::Backtrack.m_tRecord };
 	}
 
-	Vec3 vPeekPos = {};
-	float flSpread = pWeapon->GetWeaponSpread();
-	if (flSpread && Vars::Aimbot::General::HitscanPeek.Value)
-		vPeekPos = m_vEyePos + pLocal->m_vecVelocity() * TICKS_TO_TIME(-Vars::Aimbot::General::HitscanPeek.Value);
+	bool bPeekCheck = false;
+	if (Vars::Aimbot::Hitscan::PeekAmount.Value && pWeapon->GetWeaponSpread())
+	{
+		switch (Vars::Aimbot::Hitscan::PeekCheck.Value)
+		{
+		case Vars::Aimbot::Hitscan::PeekCheckEnum::Off: break;
+		case Vars::Aimbot::Hitscan::PeekCheckEnum::DoubletapOnly: bPeekCheck = F::Ticks.GetTicks(pWeapon); break;
+		case Vars::Aimbot::Hitscan::PeekCheckEnum::Always: bPeekCheck = true; break;
+		}
+	}
+	Vec3 vPeekPos = bPeekCheck ? m_vEyePos + pLocal->m_vecVelocity() * TICKS_TO_TIME(-Vars::Aimbot::Hitscan::PeekAmount.Value) : Vec3();
 
 	// if we're doubletapping, we can't change viewangles so work around that
 	static int iTargetBone = 0;
@@ -298,8 +305,8 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 	int iReturn = false;
 	for (auto pRecord : vRecords)
 	{
-		bool bRunPeekCheck = flSpread && (Vars::Aimbot::General::PeekDTOnly.Value ? F::Ticks.GetTicks(pWeapon) : true) && Vars::Aimbot::General::HitscanPeek.Value;
-
+		bool bRunPeekCheck = bPeekCheck;
+		
 		if (pWeapon->GetWeaponID() == TF_WEAPON_LASER_POINTER)
 		{
 			tTarget.m_vPos = tTarget.m_pEntity->m_vecOrigin();
